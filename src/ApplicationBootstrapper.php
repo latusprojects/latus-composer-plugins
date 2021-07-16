@@ -13,6 +13,7 @@ use Illuminate\Contracts\Debug\ExceptionHandler;
 use App\Exceptions\Handler;
 use Latus\Repositories\RepositoriesServiceProvider;
 use Latus\Settings\SettingsServiceProvider;
+use Latus\Helpers\BasePath;
 
 class ApplicationBootstrapper
 {
@@ -119,12 +120,13 @@ class ApplicationBootstrapper
         );
     }
 
-    public function getBasePath(): string
+    public function getBasePath(string $path = ''): string
     {
         if ($this->base_path) {
-            return $this->base_path;
+            return $this->base_path . $path;
         }
-        return $this->base_path = dirname(Factory::getComposerFile());
+
+        return $this->base_path = BasePath::get($path);
     }
 
     public function getApp(): Application
