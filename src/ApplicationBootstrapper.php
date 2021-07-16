@@ -40,17 +40,58 @@ class ApplicationBootstrapper
             $this->base_path = $basePath;
         }
 
-        require $this->getBasePath() . '/vendor/autoload.php';
-
         $app = new Application($this->getBasePath());
 
         $this->app = $app;
+
+        $this->requireLaravelHelperFunctions();
 
         $this->bindAppSingletons();
 
         $this->registerProviders();
 
         return $this->app;
+    }
+
+    protected function requireLaravelHelperFunctions()
+    {
+
+        $foundation_helpers = $this->getBasePath(
+            'vendor' . DIRECTORY_SEPARATOR .
+            'laravel' . DIRECTORY_SEPARATOR .
+            'framework' . DIRECTORY_SEPARATOR .
+            'src' . DIRECTORY_SEPARATOR .
+            'Illuminate' . DIRECTORY_SEPARATOR .
+            'Foundation' . DIRECTORY_SEPARATOR .
+            'helpers.php'
+        );
+
+        require $foundation_helpers;
+
+        $support_helpers = $this->getBasePath(
+            'vendor' . DIRECTORY_SEPARATOR .
+            'laravel' . DIRECTORY_SEPARATOR .
+            'framework' . DIRECTORY_SEPARATOR .
+            'src' . DIRECTORY_SEPARATOR .
+            'Illuminate' . DIRECTORY_SEPARATOR .
+            'Support' . DIRECTORY_SEPARATOR .
+            'helpers.php'
+        );
+
+        require $support_helpers;
+
+        $collection_helpers = $this->getBasePath(
+            'vendor' . DIRECTORY_SEPARATOR .
+            'laravel' . DIRECTORY_SEPARATOR .
+            'framework' . DIRECTORY_SEPARATOR .
+            'src' . DIRECTORY_SEPARATOR .
+            'Illuminate' . DIRECTORY_SEPARATOR .
+            'Collections' . DIRECTORY_SEPARATOR .
+            'helpers.php'
+        );
+
+        require $collection_helpers;
+
     }
 
     protected function registerProviders()
