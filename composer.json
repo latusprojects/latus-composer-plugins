@@ -1,9 +1,9 @@
 {
-  "name": "latus/latus-composer-plugins",
+  "name": "latusprojects/latus-composer-plugins",
   "type": "composer-plugin",
   "autoload": {
     "psr-4": {
-      "Latus\\ComposerPlugins": "src/"
+      "Latus\\ComposerPlugins\\": "src/"
     }
   },
   "extra": {
