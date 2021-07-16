@@ -7,10 +7,13 @@
     }
   },
   "extra": {
-    "class": "LatusComposerPlugins\\LatusPluginInstallerPlugin"
+    "class": [
+      "Latus\\ComposerPlugins\\ComposerPlugin"
+    ]
   },
   "require": {
-    "composer-plugin-api": "^1.0"
+    "composer-plugin-api": "^2.1.0",
+    "latusprojects/latus-plugins": "dev-develop"
   },
   "require-dev": {
     "composer/composer": "^2.1.0"
