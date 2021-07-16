@@ -2,7 +2,7 @@
 
 namespace Latus\ComposerPlugins;
 
-use Composer\Factory;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
 use Latus\Plugins\PluginsServiceProvider;
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
@@ -48,6 +48,8 @@ class ApplicationBootstrapper
         $this->requireLaravelHelperFunctions();
 
         $this->bindAppSingletons();
+
+        $this->app->make(Kernel::class)->bootstrap();
 
         $this->registerProviders();
 
