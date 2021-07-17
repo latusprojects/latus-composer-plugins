@@ -13,7 +13,7 @@ use Illuminate\Contracts\Debug\ExceptionHandler;
 use App\Exceptions\Handler;
 use Latus\Repositories\RepositoriesServiceProvider;
 use Latus\Settings\SettingsServiceProvider;
-use Latus\Helpers\BasePath;
+use Latus\Helpers\Paths;
 
 class ApplicationBootstrapper
 {
@@ -128,7 +128,7 @@ class ApplicationBootstrapper
             return $this->base_path . $path;
         }
 
-        return $this->base_path = BasePath::get($path);
+        return $this->base_path = Paths::basePath($path);
     }
 
     public function getApp(): Application
