@@ -18,5 +18,12 @@
   },
   "require-dev": {
     "composer/composer": "^2.1.0"
-  }
+  },
+  "repositories": {
+    "0": {
+      "type": "composer",
+      "url": "https://latusprojects.repo.repman.io"
+    }
+  },
+  "minimum-stability": "dev"
 }
