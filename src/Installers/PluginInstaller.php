@@ -29,7 +29,9 @@ class PluginInstaller extends Installer
     {
         parent::__construct($io, $composer, $type, $filesystem, $binaryInstaller);
 
-        $this->pluginService = new PluginService($this->app->make(PluginRepository::class));
+        $this->bootstrapInstaller(function () {
+            $this->pluginService = new PluginService($this->app->make(PluginRepository::class));
+        });
     }
 
     /**
