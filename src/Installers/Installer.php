@@ -13,6 +13,7 @@ use Composer\Util\Filesystem;
 use Illuminate\Foundation\Application;
 use Latus\ComposerPlugins\ApplicationBootstrapper;
 use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
+use Latus\Helpers\Paths;
 use Latus\Plugins\Repositories\Contracts\ComposerRepositoryRepository;
 use Latus\Plugins\Services\ComposerRepositoryService;
 
@@ -37,7 +38,7 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
 
     protected function bootstrapInstaller(\Closure $closure)
     {
-        if (InstalledVersions::isInstalled('latusprojects/latus-composer-plugins')) {
+        if (InstalledVersions::isInstalled('latusprojects/latus-composer-plugins') && file_exists(Paths::basePath())) {
             $closure();
         }
     }
