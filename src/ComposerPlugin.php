@@ -3,7 +3,9 @@
 
 namespace Latus\ComposerPlugins;
 
-define('LATUS_COMPOSER_INSTALLER', true);
+if (!defined('LATUS_COMPOSER_INSTALLER')) {
+    define('LATUS_COMPOSER_INSTALLER', true);
+}
 
 use Composer\Composer;
 use Composer\IO\IOInterface;
