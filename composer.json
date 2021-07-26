@@ -14,7 +14,7 @@
   "require": {
     "latusprojects/latus-helpers": "3.0.1",
     "composer-plugin-api": "^2.1.0",
-    "latusprojects/latus-plugins": "dev-develop"
+    "latusprojects/latus-plugins": "0.1.*"
   },
   "require-dev": {
     "composer/composer": "^2.1.0"
