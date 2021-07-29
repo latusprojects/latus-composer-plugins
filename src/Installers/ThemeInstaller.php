@@ -76,11 +76,6 @@ class ThemeInstaller extends Installer
         // TODO: Implement cleanup() method.
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getInstallPath(PackageInterface $package)
-    {
-        // TODO: Implement getInstallPath() method.
+        });
     }
 }
