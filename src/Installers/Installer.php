@@ -14,6 +14,7 @@ use Illuminate\Foundation\Application;
 use Latus\ComposerPlugins\ApplicationBootstrapper;
 use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
 use Latus\Helpers\Paths;
+use Latus\Plugins\Composer\ProxyPackage;
 use Latus\Plugins\Repositories\Contracts\ComposerRepositoryRepository;
 use Latus\Plugins\Services\ComposerRepositoryService;
 
@@ -52,9 +53,9 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
     protected function getPackageAndProxyNames(string $packageName): array
     {
         return [
-            'package_proxy_name' => (str_contains($packageName, '-latus-proxied'))
+            'package_proxy_name' => (str_contains($packageName, ProxyPackage::PREFIX))
                 ? $packageName : null,
-            'package_name' => str_replace('-latus-proxied', '', $packageName),
+            'package_name' => str_replace(ProxyPackage::PREFIX, '', $packageName),
         ];
     }
 

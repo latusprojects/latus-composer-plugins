@@ -41,16 +41,8 @@ class PluginInstaller extends Installer
     {
         return in_array($packageType, [
             'latus-plugin',
-            'latus-proxied-plugin'
+            'latus-proxy-plugin'
         ]);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getInstallPath(PackageInterface $package): string
-    {
-        return base_path('plugins' . DIRECTORY_SEPARATOR . $package->getName());
     }
 
     protected function getPlugin(string $packageName): Plugin|null
@@ -94,7 +86,7 @@ class PluginInstaller extends Installer
 
         return parent::update($repo, $initial, $target)->then(function () use ($target_version, $plugin) {
 
-            $this->pluginService->updatePlugin($plugin, ['target_version' => $target_version]);
+            $this->pluginService->updatePlugin($plugin, ['current_version' => $target_version, 'target_version' => $target_version]);
 
         })->otherwise(function () use ($target_version, $plugin) {
 
@@ -126,6 +118,7 @@ class PluginInstaller extends Installer
                 'proxy_name' => $package_names['package_proxy_name'],
                 'status' => Plugin::STATUS_ACTIVATED,
                 'repository_id' => $repository_id,
+                'current_version' => $package_version,
                 'target_version' => $package_version,
             ]);
 
@@ -141,6 +134,7 @@ class PluginInstaller extends Installer
                 'proxy_name' => $package_names['package_proxy_name'],
                 'status' => Plugin::STATUS_FAILED_INSTALL,
                 'repository_id' => $repository_id,
+                'current_version' => null,
                 'target_version' => $package_version,
             ]);
 
