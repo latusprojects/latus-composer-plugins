@@ -11,6 +11,7 @@ use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
 use Latus\ComposerPlugins\Installers\PluginInstaller;
+use Latus\ComposerPlugins\Installers\ThemeInstaller;
 
 class ComposerPlugin implements PluginInterface
 {
@@ -22,6 +23,10 @@ class ComposerPlugin implements PluginInterface
         $composer->getInstallationManager()
             ->addInstaller($plugin_installer);
 
+        $themeInstaller = new ThemeInstaller($io, $composer);
+
+        $composer->getInstallationManager()
+            ->addInstaller($themeInstaller);
     }
 
     public function deactivate(Composer $composer, IOInterface $io)
