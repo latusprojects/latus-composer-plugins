@@ -40,8 +40,7 @@ class PluginInstaller extends Installer
     public function supports($packageType): bool
     {
         return in_array($packageType, [
-            'latus-plugin',
-            'latus-proxy-plugin'
+            'latus-plugin'
         ]);
     }
 

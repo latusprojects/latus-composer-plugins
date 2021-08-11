@@ -40,8 +40,7 @@ class ThemeInstaller extends Installer
     public function supports($packageType): bool
     {
         return in_array($packageType, [
-            'latus-theme',
-            'latus-proxy-theme'
+            'latus-theme'
         ]);
     }
 
