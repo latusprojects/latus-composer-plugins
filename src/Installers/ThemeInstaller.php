@@ -21,10 +21,10 @@ class ThemeInstaller extends Installer
     protected ThemeService $themeService;
 
     public function __construct(
-        IOInterface $io,
-        Composer $composer,
-        $type = 'library',
-        Filesystem $filesystem = null,
+        IOInterface     $io,
+        Composer        $composer,
+                        $type = 'library',
+        Filesystem      $filesystem = null,
         BinaryInstaller $binaryInstaller = null)
     {
         parent::__construct($io, $composer, $type, $filesystem, $binaryInstaller);
@@ -40,8 +40,7 @@ class ThemeInstaller extends Installer
     public function supports($packageType): bool
     {
         return in_array($packageType, [
-            'latus-theme',
-            'latus-proxy-theme'
+            'latus-theme'
         ]);
     }
 
