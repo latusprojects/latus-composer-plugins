@@ -22,7 +22,7 @@ class ComposerPlugin implements PluginInterface
     {
 
         /**
-         * Verify that composer is running in a laravel root directory
+         * Verify that latus-packages were installed in a laravel-root
          */
         if (File::exists(Paths::basePath('artisan'))) {
             $plugin_installer = new PluginInstaller($io, $composer);
