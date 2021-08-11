@@ -21,10 +21,10 @@ class PluginInstaller extends Installer
     protected PluginService $pluginService;
 
     public function __construct(
-        IOInterface $io,
-        Composer $composer,
-        $type = 'library',
-        Filesystem $filesystem = null,
+        IOInterface     $io,
+        Composer        $composer,
+                        $type = 'library',
+        Filesystem      $filesystem = null,
         BinaryInstaller $binaryInstaller = null)
     {
         parent::__construct($io, $composer, $type, $filesystem, $binaryInstaller);
@@ -40,8 +40,7 @@ class PluginInstaller extends Installer
     public function supports($packageType): bool
     {
         return in_array($packageType, [
-            'latus-plugin',
-            'latus-proxy-plugin'
+            'latus-plugin'
         ]);
     }
 
