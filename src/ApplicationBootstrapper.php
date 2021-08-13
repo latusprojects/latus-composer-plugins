@@ -33,8 +33,6 @@ class ApplicationBootstrapper
 
         $app = new Application($this->getBasePath());
 
-        $app->setBasePath($this->base_path);
-
         $app->bootstrapWith([
             \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class,
             \Illuminate\Foundation\Bootstrap\LoadConfiguration::class,
