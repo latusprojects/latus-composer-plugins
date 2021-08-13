@@ -4,13 +4,13 @@ namespace Latus\ComposerPlugins;
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
-use Latus\Plugins\PluginsServiceProvider;
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernelContract;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Exceptions\Handler;
+use Latus\Plugins\Providers\PluginsServiceProvider;
 use Latus\Repositories\RepositoriesServiceProvider;
 use Latus\Settings\SettingsServiceProvider;
 use Latus\Helpers\Paths;
