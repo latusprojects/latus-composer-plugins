@@ -10,30 +10,40 @@ use Composer\Installer\BinaryInstaller;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Util\Filesystem;
-use Illuminate\Foundation\Application;
-use Latus\ComposerPlugins\ApplicationBootstrapper;
 use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
 use Latus\Helpers\Paths;
+use Latus\Laravel\Application;
+use Latus\Laravel\Bootstrapper;
 use Latus\Plugins\Composer\ProxyPackage;
 use Latus\Plugins\Repositories\Contracts\ComposerRepositoryRepository;
 use Latus\Plugins\Services\ComposerRepositoryService;
+use Latus\Settings\Providers\SettingsServiceProvider;
+use Latus\UI\Providers\UIServiceProvider;
 
 abstract class Installer extends LibraryInstaller implements InstallerContract
 {
     protected Application|null $app = null;
 
     public function __construct(
-        IOInterface $io,
-        Composer $composer,
-        $type = 'library',
-        Filesystem $filesystem = null,
+        IOInterface     $io,
+        Composer        $composer,
+                        $type = 'library',
+        Filesystem      $filesystem = null,
         BinaryInstaller $binaryInstaller = null)
     {
         parent::__construct($io, $composer, $type, $filesystem, $binaryInstaller);
 
         $this->bootstrapInstaller(function () {
-            $app_bootstrapper = new ApplicationBootstrapper();
-            $this->app = $app_bootstrapper->bootstrapApplication();
+            $bootstrapper = new Bootstrapper(Paths::basePath());
+
+            $bootstrapper->addBaseProviders([
+                SettingsServiceProvider::class,
+                UIServiceProvider::class
+            ]);
+
+            $bootstrapper->build();
+
+            $this->app = $bootstrapper->finish();
         });
     }
 
