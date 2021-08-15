@@ -43,11 +43,12 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
                 PluginsServiceProvider::class
             ]);
 
+            require_once Paths::basePath('vendor/autoload.php');
+
             $bootstrapper->build();
 
             $this->app = $bootstrapper->finish();
-
-            require_once Paths::basePath('vendor/autoload.php');
+            
         });
     }
 
