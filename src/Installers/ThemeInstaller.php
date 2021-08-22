@@ -60,17 +60,17 @@ class ThemeInstaller extends Installer
     public function install(InstalledRepositoryInterface $repo, PackageInterface $package): PromiseInterface
     {
 
-        $package_names = $this->getPackageAndProxyNames($package->getName());
+        $package_name = $package->getName();
 
         $package_version = $package->getVersion();
 
         $repository_id = $this->getRepositoryId($repo->getRepoName());
 
-        $theme = $this->getTheme($package_names['package_name']);
+        $theme = $this->getTheme($package_name);
 
         $supports = isset($package->getExtra()['latus']['modules']) ? $package->getExtra()['latus']['modules'] : [];
 
-        return parent::install($repo, $package)->then(function () use ($package_names, $package_version, $repository_id, $supports, $theme) {
+        return parent::install($repo, $package)->then(function () use ($package_name, $package_version, $repository_id, $supports, $theme) {
 
             if ($theme) {
                 $this->themeService->updateTheme($theme, ['supports' => $supports]);
@@ -78,8 +78,7 @@ class ThemeInstaller extends Installer
             }
 
             $this->themeService->createTheme([
-                'name' => $package_names['package_name'],
-                'proxy_name' => $package_names['package_proxy_name'],
+                'name' => $package_name,
                 'status' => Theme::STATUS_ACTIVE,
                 'repository_id' => $repository_id,
                 'current_version' => $package_version,
@@ -87,7 +86,7 @@ class ThemeInstaller extends Installer
                 'supports' => $supports
             ]);
 
-        })->otherwise(function () use ($package_names, $package_version, $repository_id, $supports, $theme) {
+        })->otherwise(function () use ($package_name, $package_version, $repository_id, $supports, $theme) {
 
             if ($theme) {
                 $this->themeService->updateTheme($theme, ['supports' => $supports, 'status' => Theme::STATUS_FAILED_INSTALL]);
@@ -95,8 +94,7 @@ class ThemeInstaller extends Installer
             }
 
             $this->themeService->createTheme([
-                'name' => $package_names['package_name'],
-                'proxy_name' => $package_names['package_proxy_name'],
+                'name' => $package_name,
                 'status' => Theme::STATUS_FAILED_INSTALL,
                 'repository_id' => $repository_id,
                 'current_version' => null,
@@ -112,9 +110,9 @@ class ThemeInstaller extends Installer
      */
     public function update(InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target): PromiseInterface
     {
-        $package_names = $this->getPackageAndProxyNames($initial->getName());
+        $package_name = $initial->getName();
 
-        $theme = $this->getTheme($package_names['package_name']);
+        $theme = $this->getTheme($package_name);
 
         $target_version = $target->getVersion();
 
@@ -136,9 +134,8 @@ class ThemeInstaller extends Installer
      */
     public function uninstall(InstalledRepositoryInterface $repo, PackageInterface $package): PromiseInterface
     {
-        $package_names = $this->getPackageAndProxyNames($package->getName());
 
-        $theme = $this->getTheme($package_names['package_name']);
+        $theme = $this->getTheme($package->getName());
 
         return parent::uninstall($repo, $package)->then(function () use ($theme) {
 

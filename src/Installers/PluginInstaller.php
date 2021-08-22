@@ -57,9 +57,7 @@ class PluginInstaller extends Installer
     public function uninstall(InstalledRepositoryInterface $repo, PackageInterface $package): PromiseInterface
     {
 
-        $package_names = $this->getPackageAndProxyNames($package->getName());
-
-        $plugin = $this->getPlugin($package_names['package_name']);
+        $plugin = $this->getPlugin($package->getName());
 
         return parent::uninstall($repo, $package)->then(function () use ($plugin) {
 
@@ -78,9 +76,8 @@ class PluginInstaller extends Installer
 
     public function update(InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target): PromiseInterface
     {
-        $package_names = $this->getPackageAndProxyNames($initial->getName());
 
-        $plugin = $this->getPlugin($package_names['package_name']);
+        $plugin = $this->getPlugin($target->getName());
 
         $target_version = $target->getVersion();
 
@@ -98,15 +95,15 @@ class PluginInstaller extends Installer
     public function install(InstalledRepositoryInterface $repo, PackageInterface $package): PromiseInterface
     {
 
-        $package_names = $this->getPackageAndProxyNames($package->getName());
-
         $package_version = $package->getVersion();
+
+        $package_name = $package->getName();
 
         $repository_id = $this->getRepositoryId($repo->getRepoName());
 
-        $plugin = $this->getPlugin($package_names['package_name']);
+        $plugin = $this->getPlugin($package_name);
 
-        return parent::install($repo, $package)->then(function () use ($package_names, $package_version, $repository_id, $plugin) {
+        return parent::install($repo, $package)->then(function () use ($package_name, $package_version, $repository_id, $plugin) {
 
             if ($plugin) {
                 $this->pluginService->activatePlugin($plugin);
@@ -114,15 +111,14 @@ class PluginInstaller extends Installer
             }
 
             $this->pluginService->createPlugin([
-                'name' => $package_names['package_name'],
-                'proxy_name' => $package_names['package_proxy_name'],
+                'name' => $package_name,
                 'status' => Plugin::STATUS_ACTIVATED,
                 'repository_id' => $repository_id,
                 'current_version' => $package_version,
                 'target_version' => $package_version,
             ]);
 
-        })->otherwise(function () use ($package_names, $package_version, $repository_id, $plugin) {
+        })->otherwise(function () use ($package_name, $package_version, $repository_id, $plugin) {
 
             if ($plugin) {
                 $this->pluginService->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_INSTALL]);
@@ -130,8 +126,7 @@ class PluginInstaller extends Installer
             }
 
             $this->pluginService->createPlugin([
-                'name' => $package_names['package_name'],
-                'proxy_name' => $package_names['package_proxy_name'],
+                'name' => $package_name,
                 'status' => Plugin::STATUS_FAILED_INSTALL,
                 'repository_id' => $repository_id,
                 'current_version' => null,
