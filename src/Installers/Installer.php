@@ -14,6 +14,7 @@ use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
 use Latus\Helpers\Paths;
 use Latus\Laravel\Application;
 use Latus\Laravel\Bootstrapper;
+use Latus\Permissions\LatusPermissionsServiceProvider;
 use Latus\Plugins\Composer\ProxyPackage;
 use Latus\Plugins\Providers\PluginsServiceProvider;
 use Latus\Plugins\Repositories\Contracts\ComposerRepositoryRepository;
@@ -39,6 +40,7 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
 
             $bootstrapper->addBaseProviders([
                 SettingsServiceProvider::class,
+                LatusPermissionsServiceProvider::class,
                 UIServiceProvider::class,
                 PluginsServiceProvider::class
             ]);
@@ -48,7 +50,7 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
             $bootstrapper->build();
 
             $this->app = $bootstrapper->finish();
-            
+
         });
     }
 
