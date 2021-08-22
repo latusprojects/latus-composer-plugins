@@ -14,7 +14,7 @@ use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
 use Latus\Helpers\Paths;
 use Latus\Laravel\Application;
 use Latus\Laravel\Bootstrapper;
-use Latus\Plugins\Composer\ProxyPackage;
+use Latus\Permissions\Providers\LatusPermissionsServiceProvider;
 use Latus\Plugins\Providers\PluginsServiceProvider;
 use Latus\Plugins\Repositories\Contracts\ComposerRepositoryRepository;
 use Latus\Plugins\Services\ComposerRepositoryService;
@@ -39,15 +39,17 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
 
             $bootstrapper->addBaseProviders([
                 SettingsServiceProvider::class,
+                LatusPermissionsServiceProvider::class,
                 UIServiceProvider::class,
                 PluginsServiceProvider::class
             ]);
+
+            require_once Paths::basePath('vendor/autoload.php');
 
             $bootstrapper->build();
 
             $this->app = $bootstrapper->finish();
 
-            require_once Paths::basePath('vendor/autoload.php');
         });
     }
 
@@ -62,15 +64,6 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
     {
         $repository_model = (new ComposerRepositoryService(app(ComposerRepositoryRepository::class)))->findByName($repositoryName);
         return $repository_model->id;
-    }
-
-    protected function getPackageAndProxyNames(string $packageName): array
-    {
-        return [
-            'package_proxy_name' => (str_contains($packageName, ProxyPackage::PREFIX))
-                ? $packageName : null,
-            'package_name' => str_replace(ProxyPackage::PREFIX, '', $packageName),
-        ];
     }
 
 }

@@ -10,7 +10,6 @@ if (!defined('LATUS_COMPOSER_INSTALLER')) {
 use Composer\Composer;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
-use Illuminate\Support\Facades\File;
 use Latus\ComposerPlugins\Installers\PluginInstaller;
 use Latus\ComposerPlugins\Installers\ThemeInstaller;
 use Latus\Helpers\Paths;
