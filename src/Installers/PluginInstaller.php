@@ -10,6 +10,7 @@ use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Util\Filesystem;
+use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Plugin;
 use Latus\Plugins\Repositories\Contracts\PluginRepository;
 use Latus\Plugins\Services\PluginService;
@@ -138,6 +139,11 @@ class PluginInstaller extends Installer
             ]);
 
         });
+    }
+
+    public function getInstallPath(PackageInterface $package): string
+    {
+        return Paths::basePath('plugins');
     }
 
 }

@@ -10,6 +10,7 @@ use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Util\Filesystem;
+use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Theme;
 use Latus\Plugins\Repositories\Contracts\ThemeRepository;
 use Latus\Plugins\Services\ThemeService;
@@ -151,5 +152,10 @@ class ThemeInstaller extends Installer
             $this->themeService->updateTheme($theme, ['status' => Theme::STATUS_FAILED_UNINSTALL]);
 
         });
+    }
+
+    public function getInstallPath(PackageInterface $package): string
+    {
+        return Paths::basePath('themes');
     }
 }
