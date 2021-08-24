@@ -16,9 +16,9 @@ use Latus\Laravel\Application;
 use Latus\Laravel\Bootstrapper;
 use Latus\Permissions\Providers\LatusPermissionsServiceProvider;
 use Latus\Plugins\Providers\PluginsServiceProvider;
-use Latus\Plugins\Repositories\Contracts\ComposerRepositoryRepository;
 use Latus\Plugins\Services\ComposerRepositoryService;
 use Latus\Settings\Providers\SettingsServiceProvider;
+use Latus\Settings\Services\SettingService;
 use Latus\UI\Providers\UIServiceProvider;
 
 abstract class Installer extends LibraryInstaller implements InstallerContract
@@ -60,9 +60,16 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
         }
     }
 
+    //TODO: Refactor this, as its does not match the actual program-pattern
     protected function getRepositoryId(string $repositoryName): int
     {
-        $repository_model = (new ComposerRepositoryService(app(ComposerRepositoryRepository::class)))->findByName($repositoryName);
+        $repository_model = app(ComposerRepositoryService::class)->findByName($repositoryName);
+
+        if (!$repository_model) {
+            $mainRepositoryName = app(SettingService::class)->findByKey('main_repository_name')->value;
+            $repository_model = app(ComposerRepositoryService::class)->findByName($mainRepositoryName);
+        }
+
         return $repository_model->id;
     }
 
