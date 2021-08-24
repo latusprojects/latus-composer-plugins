@@ -138,7 +138,7 @@ class PluginInstaller extends Installer
 
     public function getInstallPath(PackageInterface $package): string
     {
-        return Paths::basePath('plugins');
+        return Paths::pluginPath($package->getName());
     }
 
 }
