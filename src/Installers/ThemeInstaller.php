@@ -153,6 +153,6 @@ class ThemeInstaller extends Installer
 
     public function getInstallPath(PackageInterface $package): string
     {
-        return Paths::basePath('themes');
+        return Paths::themePath($package->getName());
     }
 }
