@@ -73,7 +73,7 @@ class ThemeInstaller extends Installer
         return parent::install($repo, $package)->then(function () use ($package_name, $package_version, $repository_id, $supports, $theme) {
 
             if ($theme) {
-                $this->themeService->updateTheme($theme, ['supports' => $supports]);
+                $this->themeService->updateTheme($theme, ['current_version' => $package_version, 'supports' => $supports]);
                 return;
             }
 
