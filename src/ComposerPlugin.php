@@ -8,6 +8,7 @@ if (!defined('LATUS_COMPOSER_INSTALLER')) {
 }
 
 use Composer\Composer;
+use Composer\InstalledVersions;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
 use Latus\ComposerPlugins\Installers\PluginInstaller;
@@ -20,20 +21,15 @@ class ComposerPlugin implements PluginInterface
     public function activate(Composer $composer, IOInterface $io)
     {
 
-        /**
-         * Verify that latus-packages were installed in a laravel-root
-         */
-        if (file_exists(Paths::basePath('artisan'))) {
-            $plugin_installer = new PluginInstaller($io, $composer);
+        $plugin_installer = new PluginInstaller($io, $composer);
 
-            $composer->getInstallationManager()
-                ->addInstaller($plugin_installer);
+        $composer->getInstallationManager()
+            ->addInstaller($plugin_installer);
 
-            $themeInstaller = new ThemeInstaller($io, $composer);
+        $themeInstaller = new ThemeInstaller($io, $composer);
 
-            $composer->getInstallationManager()
-                ->addInstaller($themeInstaller);
-        }
+        $composer->getInstallationManager()
+            ->addInstaller($themeInstaller);
 
     }
 
