@@ -9,7 +9,9 @@ use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
 use Latus\Helpers\Paths;
 use Latus\Laravel\Application;
 use Latus\Laravel\Bootstrapper;
+use Latus\Plugins\Providers\PluginsServiceProvider;
 use Latus\Plugins\Services\ComposerRepositoryService;
+use Latus\Settings\Providers\SettingsServiceProvider;
 use Latus\Settings\Services\SettingService;
 
 abstract class Installer extends LibraryInstaller implements InstallerContract
@@ -21,6 +23,11 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
     protected function bootApp()
     {
         $bootstrapper = new Bootstrapper(Paths::basePath());
+
+        $bootstrapper->addBaseProviders([
+            PluginsServiceProvider::class,
+            SettingsServiceProvider::class
+        ]);
 
         require_once Paths::basePath('vendor/autoload.php');
 
