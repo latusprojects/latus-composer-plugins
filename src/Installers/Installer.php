@@ -37,13 +37,6 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
         $this->bootstrapInstaller(function () {
             $bootstrapper = new Bootstrapper(Paths::basePath());
 
-            $bootstrapper->addBaseProviders([
-                SettingsServiceProvider::class,
-                LatusPermissionsServiceProvider::class,
-                UIServiceProvider::class,
-                PluginsServiceProvider::class
-            ]);
-
             require_once Paths::basePath('vendor/autoload.php');
 
             $bootstrapper->build();
