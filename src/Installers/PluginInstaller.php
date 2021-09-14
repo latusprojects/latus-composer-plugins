@@ -21,18 +21,13 @@ class PluginInstaller extends Installer
 
     protected PluginService $pluginService;
 
-    public function __construct(
-        IOInterface     $io,
-        Composer        $composer,
-                        $type = 'library',
-        Filesystem      $filesystem = null,
-        BinaryInstaller $binaryInstaller = null)
+    protected function getPluginService(): PluginService
     {
-        parent::__construct($io, $composer, $type, $filesystem, $binaryInstaller);
+        if (!isset($this->{'pluginService'})) {
+            $this->pluginService = $this->app->make(PluginService::class);
+        }
 
-        $this->bootstrapInstaller(function () {
-            $this->pluginService = new PluginService($this->app->make(PluginRepository::class));
-        });
+        return $this->pluginService;
     }
 
     /**
@@ -50,7 +45,7 @@ class PluginInstaller extends Installer
         /**
          * @var Plugin|null $plugin
          */
-        $plugin = $this->pluginService->findByName($packageName);
+        $plugin = $this->getPluginService()->findByName($packageName);
         return $plugin;
     }
 
@@ -64,11 +59,11 @@ class PluginInstaller extends Installer
             if ($plugin->status === Plugin::STATUS_DEACTIVATED) {
                 return;
             }
-            $this->pluginService->deletePlugin($plugin);
+            $this->getPluginService()->deletePlugin($plugin);
 
         })->otherwise(function () use ($plugin) {
 
-            $this->pluginService->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_UNINSTALL]);
+            $this->getPluginService()->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_UNINSTALL]);
 
         });
 
@@ -83,11 +78,11 @@ class PluginInstaller extends Installer
 
         return parent::update($repo, $initial, $target)->then(function () use ($target_version, $plugin) {
 
-            $this->pluginService->updatePlugin($plugin, ['current_version' => $target_version, 'target_version' => $target_version]);
+            $this->getPluginService()->updatePlugin($plugin, ['current_version' => $target_version, 'target_version' => $target_version]);
 
         })->otherwise(function () use ($target_version, $plugin) {
 
-            $this->pluginService->updatePlugin($plugin, ['target_version' => $target_version, 'status' => Plugin::STATUS_FAILED_UPDATE]);
+            $this->getPluginService()->updatePlugin($plugin, ['target_version' => $target_version, 'status' => Plugin::STATUS_FAILED_UPDATE]);
 
         });
     }
@@ -106,11 +101,11 @@ class PluginInstaller extends Installer
         return parent::install($repo, $package)->then(function () use ($package_name, $package_version, $repository_id, $plugin) {
 
             if ($plugin) {
-                $this->pluginService->activatePlugin($plugin);
+                $this->getPluginService()->activatePlugin($plugin);
                 return;
             }
 
-            $this->pluginService->createPlugin([
+            $this->getPluginService()->createPlugin([
                 'name' => $package_name,
                 'status' => Plugin::STATUS_ACTIVATED,
                 'repository_id' => $repository_id,
@@ -121,11 +116,11 @@ class PluginInstaller extends Installer
         })->otherwise(function () use ($package_name, $package_version, $repository_id, $plugin) {
 
             if ($plugin) {
-                $this->pluginService->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_INSTALL]);
+                $this->getPluginService()->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_INSTALL]);
                 return;
             }
 
-            $this->pluginService->createPlugin([
+            $this->getPluginService()->createPlugin([
                 'name' => $package_name,
                 'status' => Plugin::STATUS_FAILED_INSTALL,
                 'repository_id' => $repository_id,

@@ -21,18 +21,13 @@ class ThemeInstaller extends Installer
 
     protected ThemeService $themeService;
 
-    public function __construct(
-        IOInterface     $io,
-        Composer        $composer,
-                        $type = 'library',
-        Filesystem      $filesystem = null,
-        BinaryInstaller $binaryInstaller = null)
+    protected function getThemeService(): ThemeService
     {
-        parent::__construct($io, $composer, $type, $filesystem, $binaryInstaller);
+        if (!isset($this->{'themeService'})) {
+            $this->themeService = $this->app->make(ThemeService::class);
+        }
 
-        $this->bootstrapInstaller(function () {
-            $this->themeService = new ThemeService($this->app->make(ThemeRepository::class));
-        });
+        return $this->themeService;
     }
 
     /**
@@ -50,7 +45,7 @@ class ThemeInstaller extends Installer
         /**
          * @var Theme|null $theme
          */
-        $theme = $this->themeService->findByName($packageName);
+        $theme = $this->getThemeService()->findByName($packageName);
         return $theme;
     }
 
@@ -73,11 +68,11 @@ class ThemeInstaller extends Installer
         return parent::install($repo, $package)->then(function () use ($package_name, $package_version, $repository_id, $supports, $theme) {
 
             if ($theme) {
-                $this->themeService->updateTheme($theme, ['current_version' => $package_version, 'supports' => $supports]);
+                $this->getThemeService()->updateTheme($theme, ['current_version' => $package_version, 'supports' => $supports]);
                 return;
             }
 
-            $this->themeService->createTheme([
+            $this->getThemeService()->createTheme([
                 'name' => $package_name,
                 'status' => Theme::STATUS_ACTIVE,
                 'repository_id' => $repository_id,
@@ -89,11 +84,11 @@ class ThemeInstaller extends Installer
         })->otherwise(function () use ($package_name, $package_version, $repository_id, $supports, $theme) {
 
             if ($theme) {
-                $this->themeService->updateTheme($theme, ['supports' => $supports, 'status' => Theme::STATUS_FAILED_INSTALL]);
+                $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'status' => Theme::STATUS_FAILED_INSTALL]);
                 return;
             }
 
-            $this->themeService->createTheme([
+            $this->getThemeService()->createTheme([
                 'name' => $package_name,
                 'status' => Theme::STATUS_FAILED_INSTALL,
                 'repository_id' => $repository_id,
@@ -120,11 +115,11 @@ class ThemeInstaller extends Installer
 
         return parent::update($repo, $initial, $target)->then(function () use ($target_version, $supports, $theme) {
 
-            $this->themeService->updateTheme($theme, ['supports' => $supports, 'current_version' => $target_version, 'target_version' => $target_version]);
+            $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'current_version' => $target_version, 'target_version' => $target_version]);
 
         })->otherwise(function () use ($target_version, $supports, $theme) {
 
-            $this->themeService->updateTheme($theme, ['supports' => $supports, 'target_version' => $target_version, 'status' => Theme::STATUS_FAILED_UPDATE]);
+            $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'target_version' => $target_version, 'status' => Theme::STATUS_FAILED_UPDATE]);
 
         });
     }
@@ -142,11 +137,11 @@ class ThemeInstaller extends Installer
             if ($theme->status === Theme::STATUS_INACTIVE) {
                 return;
             }
-            $this->themeService->deleteTheme($theme);
+            $this->getThemeService()->deleteTheme($theme);
 
         })->otherwise(function () use ($theme) {
 
-            $this->themeService->updateTheme($theme, ['status' => Theme::STATUS_FAILED_UNINSTALL]);
+            $this->getThemeService()->updateTheme($theme, ['status' => Theme::STATUS_FAILED_UNINSTALL]);
 
         });
     }
