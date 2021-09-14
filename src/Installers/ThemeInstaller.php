@@ -19,7 +19,7 @@ class ThemeInstaller extends Installer
     protected function getThemeService(): ThemeService
     {
         if (!isset($this->{'themeService'})) {
-            $this->themeService = $this->app->make(ThemeService::class);
+            $this->themeService = $this->getApp()->make(ThemeService::class);
         }
 
         return $this->themeService;

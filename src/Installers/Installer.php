@@ -19,29 +19,28 @@ use Latus\Settings\Services\SettingService;
 
 abstract class Installer extends LibraryInstaller implements InstallerContract
 {
-    protected Application|null $app = null;
+    protected Application $app;
     protected ComposerRepositoryService $composerRepositoryService;
     protected SettingService $settingService;
 
-    public function __construct(
-        IOInterface     $io,
-        Composer        $composer,
-                        $type = 'library',
-        Filesystem      $filesystem = null,
-        BinaryInstaller $binaryInstaller = null)
+    protected function bootApp()
     {
-        parent::__construct($io, $composer, $type, $filesystem, $binaryInstaller);
+        $bootstrapper = new Bootstrapper(Paths::basePath());
 
-        $this->bootstrapInstaller(function () {
-            $bootstrapper = new Bootstrapper(Paths::basePath());
+        require_once Paths::basePath('vendor/autoload.php');
 
-            require_once Paths::basePath('vendor/autoload.php');
+        $bootstrapper->build();
 
-            $bootstrapper->build();
+        $this->app = $bootstrapper->finish();
+    }
 
-            $this->app = $bootstrapper->finish();
+    protected function getApp(): Application
+    {
+        if (!isset($this->{'app'})) {
+            $this->bootApp();
+        }
 
-        });
+        return $this->app;
     }
 
     /**
@@ -50,7 +49,7 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
     public function getComposerRepositoryService(): ComposerRepositoryService
     {
         if (!isset($this->{'composerRepositoryService'})) {
-            $this->composerRepositoryService = $this->app->make(ComposerRepositoryService::class);
+            $this->composerRepositoryService = $this->getApp()->make(ComposerRepositoryService::class);
         }
 
         return $this->composerRepositoryService;
@@ -62,17 +61,10 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
     public function getSettingService(): SettingService
     {
         if (!isset($this->{'settingService'})) {
-            $this->settingService = $this->app->make(SettingService::class);
+            $this->settingService = $this->getApp()->make(SettingService::class);
         }
 
         return $this->settingService;
-    }
-
-    protected function bootstrapInstaller(\Closure $closure)
-    {
-        if (InstalledVersions::isInstalled('latusprojects/latus-composer-plugins') && file_exists(Paths::basePath('artisan'))) {
-            $closure();
-        }
     }
 
     protected function getRepositoryId(string $repositoryName): int
