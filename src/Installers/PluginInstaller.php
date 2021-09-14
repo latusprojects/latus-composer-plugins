@@ -4,15 +4,10 @@
 namespace Latus\ComposerPlugins\Installers;
 
 
-use Composer\Composer;
-use Composer\Installer\BinaryInstaller;
-use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
-use Composer\Util\Filesystem;
 use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Plugin;
-use Latus\Plugins\Repositories\Contracts\PluginRepository;
 use Latus\Plugins\Services\PluginService;
 use React\Promise\PromiseInterface;
 
@@ -51,17 +46,20 @@ class PluginInstaller extends Installer
 
     public function uninstall(InstalledRepositoryInterface $repo, PackageInterface $package): PromiseInterface
     {
+        $packageName = $package->getName();
 
-        $plugin = $this->getPlugin($package->getName());
+        return parent::uninstall($repo, $package)->then(function () use ($packageName) {
 
-        return parent::uninstall($repo, $package)->then(function () use ($plugin) {
+            $plugin = $this->getPlugin($packageName);
 
             if ($plugin->status === Plugin::STATUS_DEACTIVATED) {
                 return;
             }
             $this->getPluginService()->deletePlugin($plugin);
 
-        })->otherwise(function () use ($plugin) {
+        })->otherwise(function () use ($packageName) {
+
+            $plugin = $this->getPlugin($packageName);
 
             $this->getPluginService()->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_UNINSTALL]);
 
@@ -72,15 +70,19 @@ class PluginInstaller extends Installer
     public function update(InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target): PromiseInterface
     {
 
-        $plugin = $this->getPlugin($target->getName());
+        $packageName = $target->getName();
 
         $target_version = $target->getVersion();
 
-        return parent::update($repo, $initial, $target)->then(function () use ($target_version, $plugin) {
+        return parent::update($repo, $initial, $target)->then(function () use ($target_version, $packageName) {
+
+            $plugin = $this->getPlugin($packageName);
 
             $this->getPluginService()->updatePlugin($plugin, ['current_version' => $target_version, 'target_version' => $target_version]);
 
-        })->otherwise(function () use ($target_version, $plugin) {
+        })->otherwise(function () use ($target_version, $packageName) {
+
+            $plugin = $this->getPlugin($packageName);
 
             $this->getPluginService()->updatePlugin($plugin, ['target_version' => $target_version, 'status' => Plugin::STATUS_FAILED_UPDATE]);
 
@@ -92,13 +94,15 @@ class PluginInstaller extends Installer
 
         $package_version = $package->getVersion();
 
-        $package_name = $package->getName();
+        $packageName = $package->getName();
 
-        $repository_id = $this->getRepositoryId($repo->getRepoName());
+        $repoName = $repo->getRepoName();
 
-        $plugin = $this->getPlugin($package_name);
+        return parent::install($repo, $package)->then(function () use ($packageName, $package_version, $repoName) {
 
-        return parent::install($repo, $package)->then(function () use ($package_name, $package_version, $repository_id, $plugin) {
+            $repositoryId = $this->getRepositoryId($repoName);
+
+            $plugin = $this->getPlugin($packageName);
 
             if ($plugin) {
                 $this->getPluginService()->activatePlugin($plugin);
@@ -106,14 +110,18 @@ class PluginInstaller extends Installer
             }
 
             $this->getPluginService()->createPlugin([
-                'name' => $package_name,
+                'name' => $packageName,
                 'status' => Plugin::STATUS_ACTIVATED,
-                'repository_id' => $repository_id,
+                'repository_id' => $repositoryId,
                 'current_version' => $package_version,
                 'target_version' => $package_version,
             ]);
 
-        })->otherwise(function () use ($package_name, $package_version, $repository_id, $plugin) {
+        })->otherwise(function () use ($packageName, $package_version, $repoName) {
+
+            $repositoryId = $this->getRepositoryId($repoName);
+
+            $plugin = $this->getPlugin($packageName);
 
             if ($plugin) {
                 $this->getPluginService()->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_INSTALL]);
@@ -121,9 +129,9 @@ class PluginInstaller extends Installer
             }
 
             $this->getPluginService()->createPlugin([
-                'name' => $package_name,
+                'name' => $packageName,
                 'status' => Plugin::STATUS_FAILED_INSTALL,
-                'repository_id' => $repository_id,
+                'repository_id' => $repositoryId,
                 'current_version' => null,
                 'target_version' => $package_version,
             ]);

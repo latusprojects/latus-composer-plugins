@@ -14,16 +14,14 @@ use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
 use Latus\Helpers\Paths;
 use Latus\Laravel\Application;
 use Latus\Laravel\Bootstrapper;
-use Latus\Permissions\Providers\LatusPermissionsServiceProvider;
-use Latus\Plugins\Providers\PluginsServiceProvider;
 use Latus\Plugins\Services\ComposerRepositoryService;
-use Latus\Settings\Providers\SettingsServiceProvider;
 use Latus\Settings\Services\SettingService;
-use Latus\UI\Providers\UIServiceProvider;
 
 abstract class Installer extends LibraryInstaller implements InstallerContract
 {
     protected Application|null $app = null;
+    protected ComposerRepositoryService $composerRepositoryService;
+    protected SettingService $settingService;
 
     public function __construct(
         IOInterface     $io,
@@ -46,6 +44,30 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
         });
     }
 
+    /**
+     * @return ComposerRepositoryService
+     */
+    public function getComposerRepositoryService(): ComposerRepositoryService
+    {
+        if (!isset($this->{'composerRepositoryService'})) {
+            $this->composerRepositoryService = $this->app->make(ComposerRepositoryService::class);
+        }
+
+        return $this->composerRepositoryService;
+    }
+
+    /**
+     * @return SettingService
+     */
+    public function getSettingService(): SettingService
+    {
+        if (!isset($this->{'settingService'})) {
+            $this->settingService = $this->app->make(SettingService::class);
+        }
+
+        return $this->settingService;
+    }
+
     protected function bootstrapInstaller(\Closure $closure)
     {
         if (InstalledVersions::isInstalled('latusprojects/latus-composer-plugins') && file_exists(Paths::basePath('artisan'))) {
@@ -53,14 +75,13 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
         }
     }
 
-    //TODO: Refactor this, as its does not match the actual program-pattern
     protected function getRepositoryId(string $repositoryName): int
     {
-        $repository_model = app(ComposerRepositoryService::class)->findByName($repositoryName);
+        $repository_model = $this->getComposerRepositoryService()->findByName($repositoryName);
 
         if (!$repository_model) {
-            $mainRepositoryName = app(SettingService::class)->findByKey('main_repository_name')->value;
-            $repository_model = app(ComposerRepositoryService::class)->findByName($mainRepositoryName);
+            $mainRepositoryName = $this->getSettingService()->findByKey('main_repository_name')->value;
+            $repository_model = $this->getComposerRepositoryService()->findByName($mainRepositoryName);
         }
 
         return $repository_model->id;
