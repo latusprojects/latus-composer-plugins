@@ -4,15 +4,10 @@
 namespace Latus\ComposerPlugins\Installers;
 
 
-use Composer\Composer;
-use Composer\Installer\BinaryInstaller;
-use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
-use Composer\Util\Filesystem;
 use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Theme;
-use Latus\Plugins\Repositories\Contracts\ThemeRepository;
 use Latus\Plugins\Services\ThemeService;
 use React\Promise\PromiseInterface;
 
