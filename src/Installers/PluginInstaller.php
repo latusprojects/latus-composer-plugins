@@ -19,7 +19,7 @@ class PluginInstaller extends Installer
     protected function getPluginService(): PluginService
     {
         if (!isset($this->{'pluginService'})) {
-            $this->pluginService = $this->app->make(PluginService::class);
+            $this->pluginService = $this->getApp()->make(PluginService::class);
         }
 
         return $this->pluginService;
