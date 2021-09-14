@@ -4,12 +4,7 @@
 namespace Latus\ComposerPlugins\Installers;
 
 
-use Composer\Composer;
-use Composer\InstalledVersions;
-use Composer\Installer\BinaryInstaller;
 use Composer\Installer\LibraryInstaller;
-use Composer\IO\IOInterface;
-use Composer\Util\Filesystem;
 use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
 use Latus\Helpers\Paths;
 use Latus\Laravel\Application;
