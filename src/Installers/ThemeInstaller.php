@@ -139,16 +139,23 @@ class ThemeInstaller extends Installer
 
             $theme = $this->getTheme($packageName);
 
-            if ($theme->status === Theme::STATUS_INACTIVE) {
-                return;
+            if ($theme) {
+                if ($theme->status === Theme::STATUS_INACTIVE) {
+                    return;
+                }
+                $this->getThemeService()->deleteTheme($theme);
+
             }
-            $this->getThemeService()->deleteTheme($theme);
 
         })->otherwise(function () use ($packageName) {
 
             $theme = $this->getTheme($packageName);
 
-            $this->getThemeService()->updateTheme($theme, ['status' => Theme::STATUS_FAILED_UNINSTALL]);
+            if ($theme) {
+
+                $this->getThemeService()->updateTheme($theme, ['status' => Theme::STATUS_FAILED_UNINSTALL]);
+
+            }
 
         });
     }
