@@ -52,17 +52,20 @@ class PluginInstaller extends Installer
 
             $plugin = $this->getPlugin($packageName);
 
-            if ($plugin->status === Plugin::STATUS_DEACTIVATED) {
-                return;
+            if ($plugin) {
+                if ($plugin->status === Plugin::STATUS_DEACTIVATED) {
+                    return;
+                }
+                $this->getPluginService()->deletePlugin($plugin);
             }
-            $this->getPluginService()->deletePlugin($plugin);
 
         })->otherwise(function () use ($packageName) {
 
             $plugin = $this->getPlugin($packageName);
 
-            $this->getPluginService()->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_UNINSTALL]);
-
+            if ($plugin) {
+                $this->getPluginService()->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_UNINSTALL]);
+            }
         });
 
     }
