@@ -6,6 +6,7 @@ namespace Latus\ComposerPlugins\Installers;
 
 use Composer\Installer\LibraryInstaller;
 use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
+use Latus\ComposerPlugins\Events\EventDispatcher;
 use Latus\Helpers\Paths;
 use Latus\Laravel\Application;
 use Latus\Laravel\Bootstrapper;
@@ -19,6 +20,7 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
     protected Application $app;
     protected ComposerRepositoryService $composerRepositoryService;
     protected SettingService $settingService;
+    protected EventDispatcher $eventDispatcher;
 
     protected function bootApp()
     {
@@ -43,6 +45,15 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
         }
 
         return $this->app;
+    }
+
+    protected function getEventDispatcher(): EventDispatcher
+    {
+        if (!isset($this->{'eventDispatcher'})) {
+            $this->eventDispatcher = $this->getApp()->make(EventDispatcher::class);
+        }
+
+        return $this->eventDispatcher;
     }
 
     /**

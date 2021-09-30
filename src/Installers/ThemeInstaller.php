@@ -64,19 +64,21 @@ class ThemeInstaller extends Installer
 
             $theme = $this->getTheme($packageName);
 
-            if ($theme) {
+            if (!$theme) {
+                $theme = $this->getThemeService()->createTheme([
+                    'name' => $packageName,
+                    'status' => Theme::STATUS_ACTIVE,
+                    'repository_id' => $repositoryId,
+                    'current_version' => $package_version,
+                    'target_version' => $package_version,
+                    'supports' => $supports
+                ]);
+            } else {
                 $this->getThemeService()->updateTheme($theme, ['current_version' => $package_version, 'supports' => $supports]);
-                return;
             }
 
-            $this->getThemeService()->createTheme([
-                'name' => $packageName,
-                'status' => Theme::STATUS_ACTIVE,
-                'repository_id' => $repositoryId,
-                'current_version' => $package_version,
-                'target_version' => $package_version,
-                'supports' => $supports
-            ]);
+            $this->getEventDispatcher()->setPackage($theme);
+            $this->getEventDispatcher()->dispatchInstalledEvent();
 
         })->otherwise(function () use ($packageName, $package_version, $supports, $repoName) {
 
@@ -84,19 +86,21 @@ class ThemeInstaller extends Installer
 
             $theme = $this->getTheme($packageName);
 
-            if ($theme) {
+            if (!$theme) {
+                $theme = $this->getThemeService()->createTheme([
+                    'name' => $packageName,
+                    'status' => Theme::STATUS_FAILED_INSTALL,
+                    'repository_id' => $repositoryId,
+                    'current_version' => null,
+                    'target_version' => $package_version,
+                    'supports' => $supports
+                ]);
+            } else {
                 $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'status' => Theme::STATUS_FAILED_INSTALL]);
-                return;
             }
 
-            $this->getThemeService()->createTheme([
-                'name' => $packageName,
-                'status' => Theme::STATUS_FAILED_INSTALL,
-                'repository_id' => $repositoryId,
-                'current_version' => null,
-                'target_version' => $package_version,
-                'supports' => $supports
-            ]);
+            $this->getEventDispatcher()->setPackage($theme);
+            $this->getEventDispatcher()->dispatchInstallFailedEvent();
 
         });
     }
@@ -118,11 +122,17 @@ class ThemeInstaller extends Installer
 
             $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'current_version' => $target_version, 'target_version' => $target_version]);
 
+            $this->getEventDispatcher()->setPackage($theme);
+            $this->getEventDispatcher()->dispatchUpdatedEvent();
+
         })->otherwise(function () use ($target_version, $supports, $packageName) {
 
             $theme = $this->getTheme($packageName);
 
             $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'target_version' => $target_version, 'status' => Theme::STATUS_FAILED_UPDATE]);
+
+            $this->getEventDispatcher()->setPackage($theme);
+            $this->getEventDispatcher()->dispatchUpdateFailedEvent();
 
         });
     }
@@ -140,11 +150,13 @@ class ThemeInstaller extends Installer
             $theme = $this->getTheme($packageName);
 
             if ($theme) {
-                if ($theme->status === Theme::STATUS_INACTIVE) {
-                    return;
-                }
-                $this->getThemeService()->deleteTheme($theme);
 
+                $this->getEventDispatcher()->setPackage($theme);
+                $this->getEventDispatcher()->dispatchUninstalledEvent();
+
+                if ($theme->status !== Theme::STATUS_INACTIVE) {
+                    $this->getThemeService()->deleteTheme($theme);
+                }
             }
 
         })->otherwise(function () use ($packageName) {
@@ -154,6 +166,9 @@ class ThemeInstaller extends Installer
             if ($theme) {
 
                 $this->getThemeService()->updateTheme($theme, ['status' => Theme::STATUS_FAILED_UNINSTALL]);
+
+                $this->getEventDispatcher()->setPackage($theme);
+                $this->getEventDispatcher()->dispatchUninstallFailedEvent();
 
             }
 
