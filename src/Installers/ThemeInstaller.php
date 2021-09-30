@@ -49,6 +49,9 @@ class ThemeInstaller extends Installer
      */
     public function install(InstalledRepositoryInterface $repo, PackageInterface $package): PromiseInterface
     {
+        if (!$this->isRunningInLaravel()) {
+            return \React\Promise\resolve();
+        }
 
         $packageName = $package->getName();
 
@@ -110,6 +113,10 @@ class ThemeInstaller extends Installer
      */
     public function update(InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target): PromiseInterface
     {
+        if (!$this->isRunningInLaravel()) {
+            return \React\Promise\resolve();
+        }
+
         $packageName = $initial->getName();
 
         $target_version = $target->getVersion();
@@ -142,6 +149,9 @@ class ThemeInstaller extends Installer
      */
     public function uninstall(InstalledRepositoryInterface $repo, PackageInterface $package): PromiseInterface
     {
+        if (!$this->isRunningInLaravel()) {
+            return \React\Promise\resolve();
+        }
 
         $packageName = $package->getName();
 

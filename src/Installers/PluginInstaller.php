@@ -47,6 +47,10 @@ class PluginInstaller extends Installer
 
     public function uninstall(InstalledRepositoryInterface $repo, PackageInterface $package): PromiseInterface
     {
+        if (!$this->isRunningInLaravel()) {
+            return \React\Promise\resolve();
+        }
+
         $packageName = $package->getName();
 
         return parent::uninstall($repo, $package)->then(function () use ($packageName) {
@@ -61,7 +65,7 @@ class PluginInstaller extends Installer
                 if ($plugin->status !== Plugin::STATUS_DEACTIVATED) {
                     $this->getPluginService()->deletePlugin($plugin);
                 }
-                
+
             }
 
         })->otherwise(function () use ($packageName) {
@@ -80,6 +84,9 @@ class PluginInstaller extends Installer
 
     public function update(InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target): PromiseInterface
     {
+        if (!$this->isRunningInLaravel()) {
+            return \React\Promise\resolve();
+        }
 
         $packageName = $target->getName();
 
@@ -108,6 +115,9 @@ class PluginInstaller extends Installer
 
     public function install(InstalledRepositoryInterface $repo, PackageInterface $package): PromiseInterface
     {
+        if (!$this->isRunningInLaravel()) {
+            return \React\Promise\resolve();
+        }
 
         $package_version = $package->getVersion();
 
