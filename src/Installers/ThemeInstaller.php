@@ -7,6 +7,7 @@ namespace Latus\ComposerPlugins\Installers;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Illuminate\Support\Facades\App;
+use Latus\ComposerPlugins\Events\PackageSpecifiedListenersCaller;
 use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Theme;
 use Latus\Plugins\Services\ThemeService;
@@ -62,7 +63,9 @@ class ThemeInstaller extends Installer
 
         $supports = isset($package->getExtra()['latus']['modules']) ? $package->getExtra()['latus']['modules'] : [];
 
-        return parent::install($repo, $package)->then(function () use ($packageName, $package_version, $supports, $repoName) {
+        $packageListeners = isset($package->getExtra()['latus']['package-events']) ? $package->getExtra()['latus']['package-events'] : [];
+
+        return parent::install($repo, $package)->then(function () use ($packageName, $package_version, $supports, $repoName, $packageListeners) {
 
             $repositoryId = $this->getRepositoryId($repoName);
 
@@ -83,6 +86,8 @@ class ThemeInstaller extends Installer
 
             $this->getEventDispatcher()->setPackage($theme);
             $this->getEventDispatcher()->dispatchInstalledEvent();
+
+            $this->callPackageListeners(PackageSpecifiedListenersCaller::EVENT_INSTALLED, $theme, $packageListeners);
 
         })->otherwise(function () use ($packageName, $package_version, $supports, $repoName) {
 
@@ -124,7 +129,9 @@ class ThemeInstaller extends Installer
 
         $supports = isset($target->getExtra()['latus']['modules']) ? $target->getExtra()['latus']['modules'] : [];
 
-        return parent::update($repo, $initial, $target)->then(function () use ($target_version, $supports, $packageName) {
+        $packageListeners = isset($target->getExtra()['latus']['package-events']) ? $target->getExtra()['latus']['package-events'] : [];
+
+        return parent::update($repo, $initial, $target)->then(function () use ($target_version, $supports, $packageName, $packageListeners) {
 
             $theme = $this->getTheme($packageName);
 
@@ -132,6 +139,8 @@ class ThemeInstaller extends Installer
 
             $this->getEventDispatcher()->setPackage($theme);
             $this->getEventDispatcher()->dispatchUpdatedEvent();
+
+            $this->callPackageListeners(PackageSpecifiedListenersCaller::EVENT_UPDATED, $theme, $packageListeners);
 
         })->otherwise(function () use ($target_version, $supports, $packageName) {
 

@@ -7,6 +7,7 @@ namespace Latus\ComposerPlugins\Installers;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Illuminate\Support\Facades\App;
+use Latus\ComposerPlugins\Events\PackageSpecifiedListenersCaller;
 use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Plugin;
 use Latus\Plugins\Services\PluginService;
@@ -92,7 +93,9 @@ class PluginInstaller extends Installer
 
         $target_version = $target->getVersion();
 
-        return parent::update($repo, $initial, $target)->then(function () use ($target_version, $packageName) {
+        $packageListeners = isset($target->getExtra()['latus']['package-events']) ? $target->getExtra()['latus']['package-events'] : [];
+
+        return parent::update($repo, $initial, $target)->then(function () use ($target_version, $packageName, $packageListeners) {
 
             $plugin = $this->getPlugin($packageName);
 
@@ -100,6 +103,8 @@ class PluginInstaller extends Installer
 
             $this->getEventDispatcher()->setPackage($plugin);
             $this->getEventDispatcher()->dispatchUpdatedEvent();
+
+            $this->callPackageListeners(PackageSpecifiedListenersCaller::EVENT_UPDATED, $plugin, $packageListeners);
 
         })->otherwise(function () use ($target_version, $packageName) {
 
@@ -125,7 +130,9 @@ class PluginInstaller extends Installer
 
         $repoName = $repo->getRepoName();
 
-        return parent::install($repo, $package)->then(function () use ($packageName, $package_version, $repoName) {
+        $packageListeners = isset($package->getExtra()['latus']['package-events']) ? $package->getExtra()['latus']['package-events'] : [];
+
+        return parent::install($repo, $package)->then(function () use ($packageName, $package_version, $repoName, $packageListeners) {
 
             $repositoryId = $this->getRepositoryId($repoName);
 
@@ -143,11 +150,17 @@ class PluginInstaller extends Installer
                     'target_version' => $package_version,
                 ]);
             } else {
+                $this->getPluginService()->updatePlugin($plugin, [
+                    'current_version' => $package_version
+                ]);
+
                 $this->getPluginService()->activatePlugin($plugin);
             }
 
             $this->getEventDispatcher()->setPackage($plugin);
             $this->getEventDispatcher()->dispatchInstalledEvent();
+
+            $this->callPackageListeners(PackageSpecifiedListenersCaller::EVENT_INSTALLED, $plugin, $packageListeners);
 
         })->otherwise(function () use ($packageName, $package_version, $repoName) {
 
