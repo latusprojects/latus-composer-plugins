@@ -9,6 +9,9 @@ use Composer\Package\PackageInterface;
 use Illuminate\Support\Facades\App;
 use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
 use Latus\ComposerPlugins\Events\EventDispatcher;
+use Latus\ComposerPlugins\Events\PackageSpecifiedListenersCaller;
+use Latus\Plugins\Models\Plugin;
+use Latus\Plugins\Models\Theme;
 use Latus\Plugins\Services\ComposerRepositoryService;
 use Latus\Settings\Services\SettingService;
 use React\Promise\PromiseInterface;
@@ -91,6 +94,21 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
     protected function isRunningInLaravel(): bool
     {
         return defined('LARAVEL_START');
+    }
+
+    protected function callPackageListeners(string $event, Theme|Plugin $package, array $packageListeners)
+    {
+        if (!empty($packageListeners)) {
+            return;
+        }
+
+        $listenerCaller = new PackageSpecifiedListenersCaller($package, $packageListeners);
+
+        match ($event) {
+            PackageSpecifiedListenersCaller::EVENT_INSTALLED => $listenerCaller->afterInstall(),
+            PackageSpecifiedListenersCaller::EVENT_UPDATED => $listenerCaller->afterUpdate(),
+            PackageSpecifiedListenersCaller::EVENT_UNINSTALL => $listenerCaller->onUninstall(),
+        };
     }
 
 }
