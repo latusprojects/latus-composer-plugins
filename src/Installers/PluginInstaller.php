@@ -6,7 +6,7 @@ namespace Latus\ComposerPlugins\Installers;
 
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
-use Latus\ComposerPlugins\Events\EventDispatcher;
+use Illuminate\Support\Facades\App;
 use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Plugin;
 use Latus\Plugins\Services\PluginService;
@@ -20,7 +20,7 @@ class PluginInstaller extends Installer
     protected function getPluginService(): PluginService
     {
         if (!isset($this->{'pluginService'})) {
-            $this->pluginService = $this->getApp()->make(PluginService::class);
+            $this->pluginService = App::make(PluginService::class);
         }
 
         return $this->pluginService;
