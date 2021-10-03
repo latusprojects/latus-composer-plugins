@@ -6,6 +6,7 @@ namespace Latus\ComposerPlugins\Installers;
 
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
+use Illuminate\Support\Facades\App;
 use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Theme;
 use Latus\Plugins\Services\ThemeService;
@@ -19,7 +20,7 @@ class ThemeInstaller extends Installer
     protected function getThemeService(): ThemeService
     {
         if (!isset($this->{'themeService'})) {
-            $this->themeService = $this->getApp()->make(ThemeService::class);
+            $this->themeService = App::make(ThemeService::class);
         }
 
         return $this->themeService;

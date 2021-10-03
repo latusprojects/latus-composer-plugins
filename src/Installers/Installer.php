@@ -6,53 +6,23 @@ namespace Latus\ComposerPlugins\Installers;
 
 use Composer\Installer\LibraryInstaller;
 use Composer\Package\PackageInterface;
+use Illuminate\Support\Facades\App;
 use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
 use Latus\ComposerPlugins\Events\EventDispatcher;
-use Latus\Helpers\Paths;
-use Latus\Laravel\Application;
-use Latus\Laravel\Bootstrapper;
-use Latus\Plugins\Providers\PluginsServiceProvider;
 use Latus\Plugins\Services\ComposerRepositoryService;
-use Latus\Settings\Providers\SettingsServiceProvider;
 use Latus\Settings\Services\SettingService;
 use React\Promise\PromiseInterface;
 
 abstract class Installer extends LibraryInstaller implements InstallerContract
 {
-    protected Application $app;
     protected ComposerRepositoryService $composerRepositoryService;
     protected SettingService $settingService;
     protected EventDispatcher $eventDispatcher;
 
-    protected function bootApp()
-    {
-        $bootstrapper = new Bootstrapper(Paths::basePath());
-
-        $bootstrapper->addBaseProviders([
-            PluginsServiceProvider::class,
-            SettingsServiceProvider::class
-        ]);
-
-        require_once Paths::basePath('vendor/autoload.php');
-
-        $bootstrapper->build();
-
-        $this->app = $bootstrapper->finish();
-    }
-
-    protected function getApp(): Application
-    {
-        if (!isset($this->{'app'})) {
-            $this->bootApp();
-        }
-
-        return $this->app;
-    }
-
     protected function getEventDispatcher(): EventDispatcher
     {
         if (!isset($this->{'eventDispatcher'})) {
-            $this->eventDispatcher = $this->getApp()->make(EventDispatcher::class);
+            $this->eventDispatcher = App::make(EventDispatcher::class);
         }
 
         return $this->eventDispatcher;
@@ -64,7 +34,7 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
     public function getComposerRepositoryService(): ComposerRepositoryService
     {
         if (!isset($this->{'composerRepositoryService'})) {
-            $this->composerRepositoryService = $this->getApp()->make(ComposerRepositoryService::class);
+            $this->composerRepositoryService = App::make(ComposerRepositoryService::class);
         }
 
         return $this->composerRepositoryService;
@@ -76,7 +46,7 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
     public function getSettingService(): SettingService
     {
         if (!isset($this->{'settingService'})) {
-            $this->settingService = $this->getApp()->make(SettingService::class);
+            $this->settingService = App::make(SettingService::class);
         }
 
         return $this->settingService;
