@@ -98,7 +98,7 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
 
     protected function callPackageListeners(string $event, Theme|Plugin $package, array $packageListeners)
     {
-        if (!empty($packageListeners)) {
+        if (empty($packageListeners)) {
             return;
         }
 
