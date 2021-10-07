@@ -104,7 +104,7 @@ class PluginInstaller extends Installer
 
             $this->getPluginService()->updatePlugin($plugin, ['current_version' => $target_version, 'target_version' => $target_version]);
 
-            $this->addListenersToCache(PackageUpdated::class, $packageListeners, $plugin);
+            $this->addListenersToCache(PackageUpdated::class, $packageListeners['updated'] ?? [], $plugin);
 
         })->otherwise(function () use ($target_version, $packageName) {
 
@@ -156,7 +156,7 @@ class PluginInstaller extends Installer
                 $this->getPluginService()->activatePlugin($plugin);
             }
 
-            $this->addListenersToCache(PackageInstalled::class, $packageListeners, $plugin);
+            $this->addListenersToCache(PackageInstalled::class, $packageListeners['installed'] ?? [], $plugin);
 
         })->otherwise(function () use ($packageName, $package_version, $repoName) {
 

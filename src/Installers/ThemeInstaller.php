@@ -89,7 +89,7 @@ class ThemeInstaller extends Installer
                 $this->getThemeService()->updateTheme($theme, ['current_version' => $package_version, 'supports' => $supports]);
             }
 
-            $this->addListenersToCache(PackageInstalled::class, $packageListeners, $theme);
+            $this->addListenersToCache(PackageInstalled::class, $packageListeners['installed'] ?? [], $theme);
 
         })->otherwise(function () use ($packageName, $package_version, $supports, $repoName) {
 
@@ -138,7 +138,7 @@ class ThemeInstaller extends Installer
 
             $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'current_version' => $target_version, 'target_version' => $target_version]);
 
-            $this->addListenersToCache(PackageUpdated::class, $packageListeners, $theme);
+            $this->addListenersToCache(PackageUpdated::class, $packageListeners['updated'] ?? [], $theme);
 
         })->otherwise(function () use ($target_version, $supports, $packageName) {
 
