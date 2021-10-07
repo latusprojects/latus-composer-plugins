@@ -48,7 +48,7 @@ class DispatchPackageEvents
 
     protected function dispatchEvents(string $eventClass)
     {
-        $listeners = $this->getCachedEventsAndListeners()[$eventClass];
+        $listeners = $this->getCachedEventsAndListeners()[$eventClass] ?? null;
         if (!$listeners) {
             return;
         }
