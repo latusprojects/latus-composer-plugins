@@ -13,23 +13,24 @@ use Latus\ComposerPlugins\Events\PackageUninstalled;
 use Latus\ComposerPlugins\Events\PackageUninstallFailed;
 use Latus\ComposerPlugins\Events\PackageUpdated;
 use Latus\ComposerPlugins\Events\PackageUpdateFailed;
+use Latus\ComposerPlugins\Services\Interfaces\ThemeServiceInterface;
 use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Theme;
-use Latus\Plugins\Services\ThemeService;
 use React\Promise\PromiseInterface;
 
 class ThemeInstaller extends Installer
 {
+    public const MODULES_KEY = 'modules';
 
-    protected ThemeService $themeService;
+    protected ThemeServiceInterface $themeServiceInterface;
 
-    protected function getThemeService(): ThemeService
+    protected function serviceInterface(): ThemeServiceInterface
     {
-        if (!isset($this->{'themeService'})) {
-            $this->themeService = App::make(ThemeService::class);
+        if (!isset($this->{'themeServiceInterface'})) {
+            $this->themeServiceInterface = App::make(ThemeServiceInterface::class);
         }
 
-        return $this->themeService;
+        return $this->themeServiceInterface;
     }
 
     /**
@@ -42,15 +43,6 @@ class ThemeInstaller extends Installer
         ]);
     }
 
-    protected function getTheme(string $packageName): Theme|null
-    {
-        /**
-         * @var Theme|null $theme
-         */
-        $theme = $this->getThemeService()->findByName($packageName);
-        return $theme;
-    }
-
     /**
      * @inheritDoc
      */
@@ -60,57 +52,54 @@ class ThemeInstaller extends Installer
             return \React\Promise\resolve();
         }
 
-        $packageName = $package->getName();
+        return parent::install($repo, $package)->then(function () use ($repo, $package) {
+            $repositoryId = $this->getRepositoryId($repo->getRepoName());
 
-        $repoName = $repo->getRepoName();
+            $themeAlreadyExists = $this->serviceInterface()->find($package->getName()) ? true : false;
 
-        $package_version = $package->getVersion();
+            $supports = $this->getComposerLatusExtra($package, self::MODULES_KEY) ?? [];
 
-        $supports = isset($package->getExtra()['latus']['modules']) ? $package->getExtra()['latus']['modules'] : [];
+            $theme = $this->serviceInterface()->find($package->getName(), [
+                'name' => $package->getName(),
+                'status' => Theme::STATUS_ACTIVE,
+                'repository_id' => $repositoryId,
+                'current_version' => $package->getVersion(),
+                'target_version' => $package->getVersion(),
+                'supports' => $supports
+            ]);
 
-        $packageListeners = isset($package->getExtra()['latus']['package-events']) ? $package->getExtra()['latus']['package-events'] : [];
-
-        return parent::install($repo, $package)->then(function () use ($packageName, $package_version, $supports, $repoName, $packageListeners) {
-
-            $repositoryId = $this->getRepositoryId($repoName);
-
-            $theme = $this->getTheme($packageName);
-
-            if (!$theme) {
-                $theme = $this->getThemeService()->createTheme([
-                    'name' => $packageName,
-                    'status' => Theme::STATUS_ACTIVE,
-                    'repository_id' => $repositoryId,
-                    'current_version' => $package_version,
-                    'target_version' => $package_version,
-                    'supports' => $supports
-                ]);
-            } else {
-                $this->getThemeService()->updateTheme($theme, ['current_version' => $package_version, 'supports' => $supports]);
+            if ($themeAlreadyExists) {
+                $theme = $this->serviceInterface()->update($package->getName(), ['current_version' => $package->getVersion(), 'supports' => $supports]);
             }
 
-            $this->addListenersToCache(PackageInstalled::class, $packageListeners['installed'] ?? [], $theme);
+            $installedListeners = $this->getListeners($package, self::EVENT_CLASS_EVENT_TYPE_MAP[PackageInstalled::class]);
 
-        })->otherwise(function () use ($packageName, $package_version, $supports, $repoName) {
+            $this->addListenersToCache(PackageInstalled::class, $theme, $installedListeners);
 
-            $repositoryId = $this->getRepositoryId($repoName);
+        })->otherwise(function () use ($repo, $package) {
 
-            $theme = $this->getTheme($packageName);
+            $repositoryId = $this->getRepositoryId($repo->getRepoName());
 
-            if (!$theme) {
-                $theme = $this->getThemeService()->createTheme([
-                    'name' => $packageName,
-                    'status' => Theme::STATUS_FAILED_INSTALL,
-                    'repository_id' => $repositoryId,
-                    'current_version' => null,
-                    'target_version' => $package_version,
-                    'supports' => $supports
-                ]);
-            } else {
-                $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'status' => Theme::STATUS_FAILED_INSTALL]);
+            $themeAlreadyExists = $this->serviceInterface()->find($package->getName()) ? true : false;
+
+            $supports = $this->getComposerLatusExtra($package, self::MODULES_KEY) ?? [];
+
+            $theme = $this->serviceInterface()->find($package->getName(), [
+                'name' => $package->getName(),
+                'status' => Theme::STATUS_FAILED_INSTALL,
+                'repository_id' => $repositoryId,
+                'current_version' => null,
+                'target_version' => $package->getVersion(),
+                'supports' => $supports
+            ]);
+
+            if ($themeAlreadyExists) {
+                $this->serviceInterface()->update($package->getName(), ['supports' => $supports, 'status' => Theme::STATUS_FAILED_INSTALL]);
             }
 
-            $this->addListenersToCache(PackageInstallFailed::class, [], $theme);
+            $installFailedListeners = $this->getListeners($package, self::EVENT_CLASS_EVENT_TYPE_MAP[PackageInstallFailed::class]);
+
+            $this->addListenersToCache(PackageInstallFailed::class, $theme, $installFailedListeners);
 
         });
     }
@@ -124,29 +113,24 @@ class ThemeInstaller extends Installer
             return \React\Promise\resolve();
         }
 
-        $packageName = $initial->getName();
+        return parent::update($repo, $initial, $target)->then(function () use ($repo, $target) {
+            $supports = $this->getComposerLatusExtra($target, self::MODULES_KEY) ?? [];
 
-        $target_version = $target->getVersion();
+            $theme = $this->serviceInterface()->update($target->getName(), ['supports' => $supports, 'current_version' => $target->getVersion(), 'target_version' => $target->getVersion()]);
 
-        $supports = isset($target->getExtra()['latus']['modules']) ? $target->getExtra()['latus']['modules'] : [];
+            $updatedListeners = $this->getListeners($target, self::EVENT_CLASS_EVENT_TYPE_MAP[PackageUpdated::class]);
 
-        $packageListeners = isset($target->getExtra()['latus']['package-events']) ? $target->getExtra()['latus']['package-events'] : [];
+            $this->addListenersToCache(PackageUpdated::class, $theme, $updatedListeners);
 
-        return parent::update($repo, $initial, $target)->then(function () use ($target_version, $supports, $packageName, $packageListeners) {
+        })->otherwise(function () use ($target) {
 
-            $theme = $this->getTheme($packageName);
+            $supports = $this->getComposerLatusExtra($target, self::MODULES_KEY) ?? [];
 
-            $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'current_version' => $target_version, 'target_version' => $target_version]);
+            $theme = $this->serviceInterface()->update($target->getName(), ['supports' => $supports, 'target_version' => $target->getVersion(), 'status' => Theme::STATUS_FAILED_UPDATE]);
 
-            $this->addListenersToCache(PackageUpdated::class, $packageListeners['updated'] ?? [], $theme);
+            $updateFailedListeners = $this->getListeners($target, self::EVENT_CLASS_EVENT_TYPE_MAP[PackageUpdateFailed::class]);
 
-        })->otherwise(function () use ($target_version, $supports, $packageName) {
-
-            $theme = $this->getTheme($packageName);
-
-            $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'target_version' => $target_version, 'status' => Theme::STATUS_FAILED_UPDATE]);
-
-            $this->addListenersToCache(PackageUpdateFailed::class, [], $theme);
+            $this->addListenersToCache(PackageUpdateFailed::class, $theme, $updateFailedListeners);
 
         });
     }
@@ -160,33 +144,25 @@ class ThemeInstaller extends Installer
             return \React\Promise\resolve();
         }
 
-        $packageName = $package->getName();
+        return parent::uninstall($repo, $package)->then(function () use ($package) {
 
-        return parent::uninstall($repo, $package)->then(function () use ($packageName) {
+            $theme = $this->serviceInterface()->find($package->getName());
 
-            $theme = $this->getTheme($packageName);
-
-            if ($theme) {
-
-                $this->addListenersToCache(PackageUninstalled::class, [], $theme);
-
-                if ($theme->status !== Theme::STATUS_INACTIVE) {
-                    $this->getThemeService()->deleteTheme($theme);
-                }
+            if ($theme->status !== Theme::STATUS_INACTIVE) {
+                $this->serviceInterface()->delete($package->getName());
             }
 
-        })->otherwise(function () use ($packageName) {
+            $this->serviceInterface()->delete($package->getName());
+            $this->addListenersToCache(PackageUninstalled::class, $package->getName());
 
-            $theme = $this->getTheme($packageName);
+        })->otherwise(function () use ($package) {
+            $theme = $this->serviceInterface()->find($package->getName());
 
             if ($theme) {
-
-                $this->getThemeService()->updateTheme($theme, ['status' => Theme::STATUS_FAILED_UNINSTALL]);
-
-                $this->addListenersToCache(PackageUninstallFailed::class, [], $theme);
-
+                $this->serviceInterface()->update($theme, ['status' => Theme::STATUS_FAILED_UNINSTALL]);
             }
 
+            $this->addListenersToCache(PackageUninstallFailed::class, $package->getName());
         });
     }
 

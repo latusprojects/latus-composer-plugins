@@ -7,29 +7,31 @@ namespace Latus\ComposerPlugins\Installers;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Illuminate\Support\Facades\App;
+use Latus\ComposerPlugins\Events\PackageActivated;
+use Latus\ComposerPlugins\Events\PackageDeactivated;
 use Latus\ComposerPlugins\Events\PackageInstalled;
 use Latus\ComposerPlugins\Events\PackageInstallFailed;
 use Latus\ComposerPlugins\Events\PackageUninstalled;
 use Latus\ComposerPlugins\Events\PackageUninstallFailed;
 use Latus\ComposerPlugins\Events\PackageUpdated;
 use Latus\ComposerPlugins\Events\PackageUpdateFailed;
+use Latus\ComposerPlugins\Services\Interfaces\PluginServiceInterface;
 use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Plugin;
-use Latus\Plugins\Services\PluginService;
 use React\Promise\PromiseInterface;
 
 class PluginInstaller extends Installer
 {
 
-    protected PluginService $pluginService;
+    protected PluginServiceInterface $pluginServiceInterface;
 
-    protected function getPluginService(): PluginService
+    protected function serviceInterface(): PluginServiceInterface
     {
-        if (!isset($this->{'pluginService'})) {
-            $this->pluginService = App::make(PluginService::class);
+        if (!isset($this->{'pluginServiceInterface'})) {
+            $this->pluginServiceInterface = App::make(PluginServiceInterface::class);
         }
 
-        return $this->pluginService;
+        return $this->pluginServiceInterface;
     }
 
     /**
@@ -42,48 +44,34 @@ class PluginInstaller extends Installer
         ]);
     }
 
-    protected function getPlugin(string $packageName): Plugin|null
-    {
-        /**
-         * @var Plugin|null $plugin
-         */
-        $plugin = $this->getPluginService()->findByName($packageName);
-        return $plugin;
-    }
-
     public function uninstall(InstalledRepositoryInterface $repo, PackageInterface $package): PromiseInterface
     {
         if (!$this->isRunningInLaravel()) {
             return \React\Promise\resolve();
         }
 
-        $packageName = $package->getName();
+        return parent::uninstall($repo, $package)->then(function () use ($package) {
 
-        return parent::uninstall($repo, $package)->then(function () use ($packageName) {
+            $plugin = $this->serviceInterface()->find($package->getName());
 
-            $plugin = $this->getPlugin($packageName);
-
-            if ($plugin) {
-
-                $this->addListenersToCache(PackageUninstalled::class, [], $plugin);
-
-                if ($plugin->status !== Plugin::STATUS_DEACTIVATED) {
-                    $this->getPluginService()->deletePlugin($plugin);
-                }
-
+            if ($plugin->status === Plugin::STATUS_DEACTIVATED) {
+                $this->addListenersToCache(PackageDeactivated::class, $plugin);
+                return;
             }
 
-        })->otherwise(function () use ($packageName) {
+            $this->serviceInterface()->delete($package->getName());
+            $this->addListenersToCache(PackageUninstalled::class, $package->getName());
 
-            $plugin = $this->getPlugin($packageName);
+        })->otherwise(function () use ($package) {
+
+            $plugin = $this->serviceInterface()->find($package->getName());
 
             if ($plugin) {
-                $this->getPluginService()->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_UNINSTALL]);
-
-                $this->addListenersToCache(PackageUninstallFailed::class, [], $plugin);
+                $this->serviceInterface()->update($plugin, ['status' => Plugin::STATUS_FAILED_UNINSTALL]);
             }
+
+            $this->addListenersToCache(PackageUninstallFailed::class, $package->getName());
         });
-
     }
 
     public function update(InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target): PromiseInterface
@@ -92,28 +80,20 @@ class PluginInstaller extends Installer
             return \React\Promise\resolve();
         }
 
-        $packageName = $target->getName();
+        return parent::update($repo, $initial, $target)->then(function () use ($target) {
 
-        $target_version = $target->getVersion();
+            $plugin = $this->serviceInterface()->update($target->getName(), ['current_version' => $target->getVersion(), 'target_version' => $target->getVersion()]);
 
-        $packageListeners = isset($target->getExtra()['latus']['package-events']) ? $target->getExtra()['latus']['package-events'] : [];
+            $updatedListeners = $this->getListeners($target, self::EVENT_CLASS_EVENT_TYPE_MAP[PackageUpdated::class]);
 
-        return parent::update($repo, $initial, $target)->then(function () use ($target_version, $packageName, $packageListeners) {
+            $this->addListenersToCache(PackageUpdated::class, $plugin, $updatedListeners);
 
-            $plugin = $this->getPlugin($packageName);
+        })->otherwise(function () use ($target) {
+            $plugin = $this->serviceInterface()->update($target->getName(), ['target_version' => $target->getVersion(), 'status' => Plugin::STATUS_FAILED_UPDATE]);
 
-            $this->getPluginService()->updatePlugin($plugin, ['current_version' => $target_version, 'target_version' => $target_version]);
+            $updateFailedListeners = $this->getListeners($target, self::EVENT_CLASS_EVENT_TYPE_MAP[PackageUpdateFailed::class]);
 
-            $this->addListenersToCache(PackageUpdated::class, $packageListeners['updated'] ?? [], $plugin);
-
-        })->otherwise(function () use ($target_version, $packageName) {
-
-            $plugin = $this->getPlugin($packageName);
-
-            $this->getPluginService()->updatePlugin($plugin, ['target_version' => $target_version, 'status' => Plugin::STATUS_FAILED_UPDATE]);
-
-            $this->addListenersToCache(PackageUpdateFailed::class, [], $plugin);
-
+            $this->addListenersToCache(PackageUpdateFailed::class, $plugin, $updateFailedListeners);
         });
     }
 
@@ -123,63 +103,60 @@ class PluginInstaller extends Installer
             return \React\Promise\resolve();
         }
 
-        $package_version = $package->getVersion();
+        return parent::install($repo, $package)->then(function () use ($package, $repo) {
 
-        $packageName = $package->getName();
+            $repositoryId = $this->getRepositoryId($repo->getRepoName());
 
-        $repoName = $repo->getRepoName();
+            $pluginAlreadyExists = $this->serviceInterface()->find($package->getName()) ? true : false;
 
-        $packageListeners = isset($package->getExtra()['latus']['package-events']) ? $package->getExtra()['latus']['package-events'] : [];
+            $plugin = $this->serviceInterface()->find($package->getName(), [
+                'name' => $package->getName(),
+                'status' => Plugin::STATUS_ACTIVATED,
+                'repository_id' => $repositoryId,
+                'current_version' => $package->getVersion(),
+                'target_version' => $package->getVersion(),
+            ]);
 
-        return parent::install($repo, $package)->then(function () use ($packageName, $package_version, $repoName, $packageListeners) {
+            if (!$pluginAlreadyExists) {
+                $activatedListeners = $this->getListeners($package, self::EVENT_CLASS_EVENT_TYPE_MAP[PackageActivated::class]);
 
-            $repositoryId = $this->getRepositoryId($repoName);
-
-            $plugin = $this->getPlugin($packageName);
-
-            if (!$plugin) {
-                /**
-                 * @var Plugin $plugin
-                 */
-                $plugin = $this->getPluginService()->createPlugin([
-                    'name' => $packageName,
-                    'status' => Plugin::STATUS_ACTIVATED,
-                    'repository_id' => $repositoryId,
-                    'current_version' => $package_version,
-                    'target_version' => $package_version,
-                ]);
-            } else {
-                $this->getPluginService()->updatePlugin($plugin, [
-                    'current_version' => $package_version
-                ]);
-
-                $this->getPluginService()->activatePlugin($plugin);
+                $this->addListenersToCache(PackageActivated::class, $plugin, $activatedListeners);
+                return;
             }
 
-            $this->addListenersToCache(PackageInstalled::class, $packageListeners['installed'] ?? [], $plugin);
+            $this->serviceInterface()->update($plugin, [
+                'current_version' => $package->getVersion(),
+                'status' => Plugin::STATUS_ACTIVATED,
+            ]);
 
-        })->otherwise(function () use ($packageName, $package_version, $repoName) {
+            $installedListeners = $this->getListeners($package, self::EVENT_CLASS_EVENT_TYPE_MAP[PackageInstalled::class]);
 
-            $repositoryId = $this->getRepositoryId($repoName);
+            $this->addListenersToCache(PackageInstalled::class, $plugin, $installedListeners);
 
-            $plugin = $this->getPlugin($packageName);
+        })->otherwise(function () use ($package, $repo) {
 
-            if (!$plugin) {
-                /**
-                 * @var Plugin $plugin
-                 */
-                $plugin = $this->getPluginService()->createPlugin([
-                    'name' => $packageName,
+            $repositoryId = $this->getRepositoryId($repo->getRepoName());
+
+            $pluginAlreadyExists = $this->serviceInterface()->find($package->getName()) ? true : false;
+
+            $plugin = $this->serviceInterface()->find($package->getName(), [
+                'name' => $package->getName(),
+                'status' => Plugin::STATUS_FAILED_INSTALL,
+                'repository_id' => $repositoryId,
+                'current_version' => $package->getVersion(),
+                'target_version' => $package->getVersion(),
+            ]);
+
+            if ($pluginAlreadyExists) {
+                $this->serviceInterface()->update($plugin, [
+                    'current_version' => $package->getVersion(),
                     'status' => Plugin::STATUS_FAILED_INSTALL,
-                    'repository_id' => $repositoryId,
-                    'current_version' => null,
-                    'target_version' => $package_version,
                 ]);
-            } else {
-                $this->getPluginService()->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_INSTALL]);
             }
 
-            $this->addListenersToCache(PackageInstallFailed::class, [], $plugin);
+            $installFailedListeners = $this->getListeners($package, self::EVENT_CLASS_EVENT_TYPE_MAP[PackageInstallFailed::class]);
+
+            $this->addListenersToCache(PackageInstallFailed::class, $plugin, $installFailedListeners);
         });
     }
 

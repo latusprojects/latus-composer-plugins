@@ -9,6 +9,14 @@ use Composer\Package\PackageInterface;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
 use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
+use Latus\ComposerPlugins\Events\PackageActivated;
+use Latus\ComposerPlugins\Events\PackageDeactivated;
+use Latus\ComposerPlugins\Events\PackageInstalled;
+use Latus\ComposerPlugins\Events\PackageInstallFailed;
+use Latus\ComposerPlugins\Events\PackageUninstalled;
+use Latus\ComposerPlugins\Events\PackageUninstallFailed;
+use Latus\ComposerPlugins\Events\PackageUpdated;
+use Latus\ComposerPlugins\Events\PackageUpdateFailed;
 use Latus\Plugins\Models\Plugin;
 use Latus\Plugins\Models\Theme;
 use Latus\Plugins\Services\ComposerRepositoryService;
@@ -17,6 +25,21 @@ use React\Promise\PromiseInterface;
 
 abstract class Installer extends LibraryInstaller implements InstallerContract
 {
+
+
+    public const EVENT_CLASS_EVENT_TYPE_MAP = [
+        PackageInstalled::class => 'installed',
+        PackageUpdated::class => 'updated',
+        PackageUninstalled::class => 'uninstalled',
+        PackageInstallFailed::class => 'install-failed',
+        PackageUpdateFailed::class => 'update-failed',
+        PackageUninstallFailed::class => 'uninstall-failed',
+        PackageDeactivated::class => 'deactivated',
+        PackageActivated::class => 'activated'
+    ];
+
+    public const PACKAGE_EVENTS_KEY = 'package-events';
+
     protected ComposerRepositoryService $composerRepositoryService;
     protected SettingService $settingService;
 
@@ -85,7 +108,7 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
         return defined('LARAVEL_START');
     }
 
-    protected function addListenersToCache(string $eventClass, array $listenerClasses, Theme|Plugin $package)
+    protected function addListenersToCache(string $eventClass, Theme|Plugin|string $package, array $listenerClasses = [])
     {
         if (!Cache::has('latus-package-events')) {
             Cache::put('latus-package-events', []);
@@ -99,14 +122,34 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
 
         foreach ($listenerClasses as $listenerClass) {
             $cache[$eventClass][] = [
-                'event_class' => 'latus-package-installed.' . $package->name,
+                'event_class' => 'latus-package-installed.' . is_string($package) ? $package : $package->name,
                 'listener_class' => $listenerClass,
-                'package_class' => get_class($package),
-                'package_id' => $package->id
+                'package_class' => is_string($package) ? $package : get_class($package),
+                'package_id' => is_string($package) ? $package : $package->id
             ];
         }
 
         Cache::put('latus-package-events', $cache);
+    }
+
+    protected function getComposerLatusExtra(PackageInterface $package, string $key, string $subKey = null): string|array|null
+    {
+        if (!isset($package->getExtra()['latus']) || !isset($package->getExtra()['latus'][$key])) {
+            return null;
+        }
+
+        if ($subKey && !isset($package->getExtra()['latus'][$key][$subKey])) {
+            return null;
+        }
+
+        return $subKey ? $package->getExtra()['latus'][$key][$subKey] : $package->getExtra()['latus'][$key];
+    }
+
+    protected function getListeners(PackageInterface $package, string $eventType): array
+    {
+        $packageListeners = $this->getComposerLatusExtra($package, 'package-events', $eventType);
+
+        return $packageListeners ?? [];
     }
 
 }
