@@ -41,6 +41,8 @@ class DispatchPackageEvents
         $this->dispatchEvents(self::EVENT_UPDATED);
         $this->dispatchEvents(self::EVENT_UNINSTALL);
 
+        Cache::forget('latus-package-events');
+
         return $next($request);
     }
 
