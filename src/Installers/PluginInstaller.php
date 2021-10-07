@@ -7,7 +7,12 @@ namespace Latus\ComposerPlugins\Installers;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Illuminate\Support\Facades\App;
-use Latus\ComposerPlugins\Events\PackageSpecifiedListenersCaller;
+use Latus\ComposerPlugins\Events\PackageInstalled;
+use Latus\ComposerPlugins\Events\PackageInstallFailed;
+use Latus\ComposerPlugins\Events\PackageUninstalled;
+use Latus\ComposerPlugins\Events\PackageUninstallFailed;
+use Latus\ComposerPlugins\Events\PackageUpdated;
+use Latus\ComposerPlugins\Events\PackageUpdateFailed;
 use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Plugin;
 use Latus\Plugins\Services\PluginService;
@@ -60,8 +65,7 @@ class PluginInstaller extends Installer
 
             if ($plugin) {
 
-                $this->getEventDispatcher()->setPackage($plugin);
-                $this->getEventDispatcher()->dispatchUninstalledEvent();
+                $this->addListenersToCache(PackageUninstalled::class, [], $plugin);
 
                 if ($plugin->status !== Plugin::STATUS_DEACTIVATED) {
                     $this->getPluginService()->deletePlugin($plugin);
@@ -76,8 +80,7 @@ class PluginInstaller extends Installer
             if ($plugin) {
                 $this->getPluginService()->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_UNINSTALL]);
 
-                $this->getEventDispatcher()->setPackage($plugin);
-                $this->getEventDispatcher()->dispatchUninstallFailedEvent();
+                $this->addListenersToCache(PackageUninstallFailed::class, [], $plugin);
             }
         });
 
@@ -101,10 +104,7 @@ class PluginInstaller extends Installer
 
             $this->getPluginService()->updatePlugin($plugin, ['current_version' => $target_version, 'target_version' => $target_version]);
 
-            $this->getEventDispatcher()->setPackage($plugin);
-            $this->getEventDispatcher()->dispatchUpdatedEvent();
-
-            $this->callPackageListeners(PackageSpecifiedListenersCaller::EVENT_UPDATED, $plugin, $packageListeners);
+            $this->addListenersToCache(PackageUpdated::class, $packageListeners, $plugin);
 
         })->otherwise(function () use ($target_version, $packageName) {
 
@@ -112,8 +112,7 @@ class PluginInstaller extends Installer
 
             $this->getPluginService()->updatePlugin($plugin, ['target_version' => $target_version, 'status' => Plugin::STATUS_FAILED_UPDATE]);
 
-            $this->getEventDispatcher()->setPackage($plugin);
-            $this->getEventDispatcher()->dispatchUpdateFailedEvent();
+            $this->addListenersToCache(PackageUpdateFailed::class, [], $plugin);
 
         });
     }
@@ -157,10 +156,7 @@ class PluginInstaller extends Installer
                 $this->getPluginService()->activatePlugin($plugin);
             }
 
-            $this->getEventDispatcher()->setPackage($plugin);
-            $this->getEventDispatcher()->dispatchInstalledEvent();
-
-            $this->callPackageListeners(PackageSpecifiedListenersCaller::EVENT_INSTALLED, $plugin, $packageListeners);
+            $this->addListenersToCache(PackageInstalled::class, $packageListeners, $plugin);
 
         })->otherwise(function () use ($packageName, $package_version, $repoName) {
 
@@ -183,8 +179,7 @@ class PluginInstaller extends Installer
                 $this->getPluginService()->updatePlugin($plugin, ['status' => Plugin::STATUS_FAILED_INSTALL]);
             }
 
-            $this->getEventDispatcher()->setPackage($plugin);
-            $this->getEventDispatcher()->dispatchInstallFailedEvent();
+            $this->addListenersToCache(PackageInstallFailed::class, [], $plugin);
         });
     }
 

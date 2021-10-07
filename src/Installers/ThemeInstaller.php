@@ -7,7 +7,12 @@ namespace Latus\ComposerPlugins\Installers;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use Illuminate\Support\Facades\App;
-use Latus\ComposerPlugins\Events\PackageSpecifiedListenersCaller;
+use Latus\ComposerPlugins\Events\PackageInstalled;
+use Latus\ComposerPlugins\Events\PackageInstallFailed;
+use Latus\ComposerPlugins\Events\PackageUninstalled;
+use Latus\ComposerPlugins\Events\PackageUninstallFailed;
+use Latus\ComposerPlugins\Events\PackageUpdated;
+use Latus\ComposerPlugins\Events\PackageUpdateFailed;
 use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Theme;
 use Latus\Plugins\Services\ThemeService;
@@ -84,10 +89,7 @@ class ThemeInstaller extends Installer
                 $this->getThemeService()->updateTheme($theme, ['current_version' => $package_version, 'supports' => $supports]);
             }
 
-            $this->getEventDispatcher()->setPackage($theme);
-            $this->getEventDispatcher()->dispatchInstalledEvent();
-
-            $this->callPackageListeners(PackageSpecifiedListenersCaller::EVENT_INSTALLED, $theme, $packageListeners);
+            $this->addListenersToCache(PackageInstalled::class, $packageListeners, $theme);
 
         })->otherwise(function () use ($packageName, $package_version, $supports, $repoName) {
 
@@ -108,8 +110,7 @@ class ThemeInstaller extends Installer
                 $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'status' => Theme::STATUS_FAILED_INSTALL]);
             }
 
-            $this->getEventDispatcher()->setPackage($theme);
-            $this->getEventDispatcher()->dispatchInstallFailedEvent();
+            $this->addListenersToCache(PackageInstallFailed::class, [], $theme);
 
         });
     }
@@ -137,10 +138,7 @@ class ThemeInstaller extends Installer
 
             $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'current_version' => $target_version, 'target_version' => $target_version]);
 
-            $this->getEventDispatcher()->setPackage($theme);
-            $this->getEventDispatcher()->dispatchUpdatedEvent();
-
-            $this->callPackageListeners(PackageSpecifiedListenersCaller::EVENT_UPDATED, $theme, $packageListeners);
+            $this->addListenersToCache(PackageUpdated::class, $packageListeners, $theme);
 
         })->otherwise(function () use ($target_version, $supports, $packageName) {
 
@@ -148,8 +146,7 @@ class ThemeInstaller extends Installer
 
             $this->getThemeService()->updateTheme($theme, ['supports' => $supports, 'target_version' => $target_version, 'status' => Theme::STATUS_FAILED_UPDATE]);
 
-            $this->getEventDispatcher()->setPackage($theme);
-            $this->getEventDispatcher()->dispatchUpdateFailedEvent();
+            $this->addListenersToCache(PackageUpdateFailed::class, [], $theme);
 
         });
     }
@@ -171,8 +168,7 @@ class ThemeInstaller extends Installer
 
             if ($theme) {
 
-                $this->getEventDispatcher()->setPackage($theme);
-                $this->getEventDispatcher()->dispatchUninstalledEvent();
+                $this->addListenersToCache(PackageUninstalled::class, [], $theme);
 
                 if ($theme->status !== Theme::STATUS_INACTIVE) {
                     $this->getThemeService()->deleteTheme($theme);
@@ -187,8 +183,7 @@ class ThemeInstaller extends Installer
 
                 $this->getThemeService()->updateTheme($theme, ['status' => Theme::STATUS_FAILED_UNINSTALL]);
 
-                $this->getEventDispatcher()->setPackage($theme);
-                $this->getEventDispatcher()->dispatchUninstallFailedEvent();
+                $this->addListenersToCache(PackageUninstallFailed::class, [], $theme);
 
             }
 

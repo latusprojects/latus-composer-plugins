@@ -7,9 +7,8 @@ namespace Latus\ComposerPlugins\Installers;
 use Composer\Installer\LibraryInstaller;
 use Composer\Package\PackageInterface;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cache;
 use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
-use Latus\ComposerPlugins\Events\EventDispatcher;
-use Latus\ComposerPlugins\Events\PackageSpecifiedListenersCaller;
 use Latus\Plugins\Models\Plugin;
 use Latus\Plugins\Models\Theme;
 use Latus\Plugins\Services\ComposerRepositoryService;
@@ -20,16 +19,6 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
 {
     protected ComposerRepositoryService $composerRepositoryService;
     protected SettingService $settingService;
-    protected EventDispatcher $eventDispatcher;
-
-    protected function getEventDispatcher(): EventDispatcher
-    {
-        if (!isset($this->{'eventDispatcher'})) {
-            $this->eventDispatcher = App::make(EventDispatcher::class);
-        }
-
-        return $this->eventDispatcher;
-    }
 
     /**
      * @return ComposerRepositoryService
@@ -96,19 +85,28 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
         return defined('LARAVEL_START');
     }
 
-    protected function callPackageListeners(string $event, Theme|Plugin $package, array $packageListeners)
+    protected function addListenersToCache(string $eventClass, array $listenerClasses, Theme|Plugin $package)
     {
-        if (!empty($packageListeners)) {
-            return;
+        if (!Cache::has('latus-package-events')) {
+            Cache::put('latus-package-events', []);
         }
 
-        $listenerCaller = new PackageSpecifiedListenersCaller($package, $packageListeners);
+        $cache = Cache::get('latus-package-events');
 
-        match ($event) {
-            PackageSpecifiedListenersCaller::EVENT_INSTALLED => $listenerCaller->afterInstall(),
-            PackageSpecifiedListenersCaller::EVENT_UPDATED => $listenerCaller->afterUpdate(),
-            PackageSpecifiedListenersCaller::EVENT_UNINSTALL => $listenerCaller->onUninstall(),
-        };
+        if (!isset($cache[$eventClass])) {
+            $cache[$eventClass] = [];
+        }
+
+        foreach ($listenerClasses as $listenerClass) {
+            $cache[$eventClass][] = [
+                'event_class' => 'latus-package-installed.' . $package->name,
+                'listener_class' => $listenerClass,
+                'package_class' => get_class($package),
+                'package_id' => $package->id
+            ];
+        }
+
+        Cache::put('latus-package-events', $cache);
     }
 
 }
