@@ -159,7 +159,7 @@ class ThemeInstaller extends Installer
             $theme = $this->serviceInterface()->find($package->getName());
 
             if ($theme) {
-                $this->serviceInterface()->update($theme, ['status' => Theme::STATUS_FAILED_UNINSTALL]);
+                $this->serviceInterface()->update($package->getName(), ['status' => Theme::STATUS_FAILED_UNINSTALL]);
             }
 
             $this->addListenersToCache(PackageUninstallFailed::class, $package->getName());

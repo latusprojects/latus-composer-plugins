@@ -124,7 +124,7 @@ class PluginInstaller extends Installer
                 return;
             }
 
-            $this->serviceInterface()->update($plugin, [
+            $this->serviceInterface()->update($package->getName(), [
                 'current_version' => $package->getVersion(),
                 'status' => Plugin::STATUS_ACTIVATED,
             ]);
@@ -137,7 +137,7 @@ class PluginInstaller extends Installer
 
             $repositoryId = $this->getRepositoryId($repo->getRepoName());
 
-            $pluginAlreadyExists = $this->serviceInterface()->find($package->getName()) ? true : false;
+            $pluginAlreadyExists = (bool)$this->serviceInterface()->find($package->getName());
 
             $plugin = $this->serviceInterface()->find($package->getName(), [
                 'name' => $package->getName(),
@@ -148,7 +148,7 @@ class PluginInstaller extends Installer
             ]);
 
             if ($pluginAlreadyExists) {
-                $this->serviceInterface()->update($plugin, [
+                $this->serviceInterface()->update($package->getName(), [
                     'current_version' => $package->getVersion(),
                     'status' => Plugin::STATUS_FAILED_INSTALL,
                 ]);
