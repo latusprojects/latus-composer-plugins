@@ -7,7 +7,7 @@ namespace Latus\ComposerPlugins\Installers;
 use Composer\Installer\LibraryInstaller;
 use Composer\Package\PackageInterface;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Latus\ComposerPlugins\Contracts\Installer as InstallerContract;
 use Latus\ComposerPlugins\Events\PackageActivated;
 use Latus\ComposerPlugins\Events\PackageDeactivated;
@@ -17,6 +17,7 @@ use Latus\ComposerPlugins\Events\PackageUninstalled;
 use Latus\ComposerPlugins\Events\PackageUninstallFailed;
 use Latus\ComposerPlugins\Events\PackageUpdated;
 use Latus\ComposerPlugins\Events\PackageUpdateFailed;
+use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Plugin;
 use Latus\Plugins\Models\Theme;
 use Latus\Plugins\Services\ComposerRepositoryService;
@@ -110,11 +111,7 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
 
     protected function addListenersToCache(string $eventClass, Theme|Plugin|string $package, array $listenerClasses = [])
     {
-        if (!Cache::has('latus-package-events')) {
-            Cache::put('latus-package-events', []);
-        }
-
-        $cache = Cache::get('latus-package-events');
+        $cache = $this->getCachedListeners();
 
         if (!isset($cache[$eventClass])) {
             $cache[$eventClass] = [];
@@ -122,14 +119,14 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
 
         foreach ($listenerClasses as $listenerClass) {
             $cache[$eventClass][] = [
-                'event_class' => 'latus-package-installed.' . is_string($package) ? $package : $package->name,
+                'event_class' => 'latus-package-installed.' . (is_string($package) ? $package : $package->name),
                 'listener_class' => $listenerClass,
                 'package_class' => is_string($package) ? $package : get_class($package),
                 'package_id' => is_string($package) ? $package : $package->id
             ];
         }
 
-        Cache::put('latus-package-events', $cache);
+        $this->storeCachedListeners($cache);
     }
 
     protected function getComposerLatusExtra(PackageInterface $package, string $key, string $subKey = null): string|array|null
@@ -150,6 +147,28 @@ abstract class Installer extends LibraryInstaller implements InstallerContract
         $packageListeners = $this->getComposerLatusExtra($package, 'package-events', $eventType);
 
         return $packageListeners ?? [];
+    }
+
+    protected function getCachedListeners(): array
+    {
+        $filePath = Paths::basePath('bootstrap/cache/latus-package-events.php');
+
+        if (!stream_resolve_include_path($filePath)) {
+            $this->storeCachedListeners([]);
+        }
+
+        return include $filePath;
+    }
+
+    protected function storeCachedListeners(array $listeners)
+    {
+        $filePath = Paths::basePath('bootstrap/cache/latus-package-events.php');
+
+        $fileContents =
+            "<?php \n" .
+            "return " . var_export($listeners, true) . ";";
+
+        File::put($filePath, $fileContents);
     }
 
 }

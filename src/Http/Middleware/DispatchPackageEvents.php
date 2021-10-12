@@ -5,11 +5,12 @@ namespace Latus\ComposerPlugins\Http\Middleware;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\File;
 use Latus\ComposerPlugins\Events\PackageInstalled;
 use Latus\ComposerPlugins\Events\PackageUninstalled;
 use Latus\ComposerPlugins\Events\PackageUpdated;
+use Latus\Helpers\Paths;
 use Latus\Plugins\Models\Plugin;
 use Latus\Plugins\Models\Theme;
 use Latus\Plugins\Services\PluginService;
@@ -37,13 +38,24 @@ class DispatchPackageEvents
      */
     public function handle(Request $request, Closure $next): mixed
     {
-        $this->dispatchEvents(self::EVENT_INSTALLED);
-        $this->dispatchEvents(self::EVENT_UPDATED);
-        $this->dispatchEvents(self::EVENT_UNINSTALL);
+        if ($this->hasDispatchableEvents()) {
+            $this->dispatchEvents(self::EVENT_INSTALLED);
+            $this->dispatchEvents(self::EVENT_UPDATED);
+            $this->dispatchEvents(self::EVENT_UNINSTALL);
 
-        Cache::forget('latus-package-events');
+            $this->clearCachedEventsAndListeners();
+        }
 
         return $next($request);
+    }
+
+    protected function hasDispatchableEvents(): bool
+    {
+        if (!stream_resolve_include_path($this->getFilePath()) || empty($this->getCachedEventsAndListeners())) {
+            return false;
+        }
+
+        return true;
     }
 
     protected function dispatchEvents(string $eventClass)
@@ -64,20 +76,21 @@ class DispatchPackageEvents
             }
 
             Event::listen($packageSpecificEventClass, $listenerClass);
-            Event::dispatch($packageSpecificEventClass, ['package' => $this->getPackage($packageClass, $packageId)]);
 
+            $eventObj = app($eventClass, ['package' => $this->getPackage($packageClass, $packageId)]);
+
+            Event::dispatch($packageSpecificEventClass, ['event' => $eventObj]);
+            Event::dispatch($eventClass, ['event' => $eventObj]);
         }
-
-        Event::dispatch($eventClass, ['package' => $this->getPackage($packageClass, $packageId)]);
     }
 
     protected function getCachedEventsAndListeners(): array
     {
-        if (!Cache::has('latus-package-events')) {
+        if (!stream_resolve_include_path($this->getFilePath())) {
             return [];
         }
 
-        return Cache::get('latus-package-events');
+        return include $this->getFilePath();
     }
 
     protected function getPackage(string $packageClass, int $packageId): Theme|Model
@@ -86,5 +99,15 @@ class DispatchPackageEvents
             Plugin::class => $this->pluginService->find($packageId),
             Theme::class => $this->themeService->find($packageId)
         };
+    }
+
+    protected function clearCachedEventsAndListeners()
+    {
+        File::delete($this->getFilePath());
+    }
+
+    protected function getFilePath(): string
+    {
+        return Paths::basePath('bootstrap/cache/latus-package-events.php');
     }
 }
