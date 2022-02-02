@@ -9,7 +9,10 @@
   "extra": {
     "class": [
       "Latus\\ComposerPlugins\\ComposerPlugin"
-    ]
+    ],
+    "branch-alias": {
+      "dev-develop": "0.2.x-dev"
+    }
   },
   "require": {
     "latusprojects/latus-helpers": "3.0.1",
